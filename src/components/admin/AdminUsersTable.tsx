@@ -208,6 +208,8 @@ export const AdminUsersTable = () => {
       toast({ title: 'Erreur', description: e.message, variant: 'destructive' });
     }
   };
+
+  const getRoleBadge = (role: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", className: string }> = {
       admin: { variant: "destructive", className: "bg-destructive" },
       moderator: { variant: "default", className: "bg-warning text-warning-foreground" },
