@@ -98,13 +98,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "contributions_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "v_admin_payments"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "contributions_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -1581,13 +1574,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_subscriptions_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "v_admin_payments"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "user_subscriptions_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
@@ -1598,27 +1584,28 @@ export type Database = {
       }
     }
     Views: {
-      v_admin_payments: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          currency: string | null
-          email: string | null
-          first_name: string | null
-          id: string | null
-          last_name: string | null
-          metadata: Json | null
-          payment_method: string | null
-          payment_reference: string | null
-          phone: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_admin_payments: {
+        Args: never
+        Returns: {
+          amount: number
+          created_at: string
+          currency: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          metadata: Json
+          payment_method: string
+          payment_reference: string
+          phone: string
+          status: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       has_active_subscription: { Args: { _user_id: string }; Returns: boolean }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       user_profile_type: { Args: { _user_id: string }; Returns: string }
