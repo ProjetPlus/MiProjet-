@@ -319,17 +319,167 @@ const ProjectDetail = () => {
         <section className="py-12">
           <div className="container mx-auto px-4">
             <Tabs defaultValue="description" className="max-w-4xl mx-auto">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="description">{t('common.description') || "Description"}</TabsTrigger>
-                <TabsTrigger value="updates">{t('projects.updates') || "Actualités"}</TabsTrigger>
-                <TabsTrigger value="team">{t('projects.team') || "Équipe"}</TabsTrigger>
-                <TabsTrigger value="documents">{t('projects.documents') || "Documents"}</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+                <TabsTrigger value="description">Description</TabsTrigger>
+                <TabsTrigger value="evaluation">Évaluation</TabsTrigger>
+                <TabsTrigger value="details">Données détaillées</TabsTrigger>
+                <TabsTrigger value="updates">Actualités</TabsTrigger>
+                <TabsTrigger value="team">Équipe</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
 
               <TabsContent value="description" className="mt-6">
                 <Card>
                   <CardContent className="pt-6 prose max-w-none">
                     <div className="whitespace-pre-wrap">{project.description}</div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* MODULE 8 — Évaluation avec interprétation auto */}
+              <TabsContent value="evaluation" className="mt-6">
+                {evaluation ? (
+                  <div className="space-y-4">
+                    {(() => {
+                      const interp = interpretScore(evaluation.score_global);
+                      const maturity = getMaturityLevel(evaluation.niveau_maturite);
+                      return (
+                        <>
+                          <Card className={`border-2 border-${interp.color}`}>
+                            <CardHeader>
+                              <div className="flex items-center justify-between flex-wrap gap-3">
+                                <div>
+                                  <CardTitle className="flex items-center gap-2">
+                                    <BarChart3 className="h-5 w-5" />
+                                    Score Global : {evaluation.score_global}/100
+                                  </CardTitle>
+                                  <CardDescription className={interp.textClass + " font-semibold mt-1"}>
+                                    {interp.label}
+                                  </CardDescription>
+                                </div>
+                                <Badge className={`${interp.bgClass} text-white text-base py-2 px-4`}>
+                                  {interp.shortLabel}
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <Progress value={evaluation.score_global} className="h-3" />
+                              <p className="text-sm text-muted-foreground">{interp.description}</p>
+                              {maturity && (
+                                <div className="bg-muted/50 rounded-lg p-3">
+                                  <p className="text-xs uppercase text-muted-foreground">Niveau de maturité</p>
+                                  <p className="font-semibold">Niveau {maturity.level} — {maturity.label}</p>
+                                  <p className="text-sm text-muted-foreground">{maturity.description}</p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardHeader><CardTitle className="text-lg">Détail par axe (100 pts)</CardTitle></CardHeader>
+                            <CardContent className="space-y-3">
+                              {EVALUATION_AXES.map((axe) => {
+                                const score = (evaluation as any)[`score_${axe.key}`] ?? 0;
+                                const pct = (score / axe.max) * 100;
+                                return (
+                                  <div key={axe.key}>
+                                    <div className="flex justify-between text-sm mb-1">
+                                      <span>{axe.label}</span>
+                                      <span className="font-semibold">{score}/{axe.max}</span>
+                                    </div>
+                                    <Progress value={pct} className="h-2" />
+                                  </div>
+                                );
+                              })}
+                            </CardContent>
+                          </Card>
+
+                          {(evaluation.forces?.length || evaluation.faiblesses?.length) && (
+                            <div className="grid md:grid-cols-2 gap-4">
+                              {evaluation.forces && evaluation.forces.length > 0 && (
+                                <Card>
+                                  <CardHeader><CardTitle className="text-base text-emerald-600 flex items-center gap-2"><CheckCircle className="h-4 w-4" />Points forts</CardTitle></CardHeader>
+                                  <CardContent><ul className="space-y-2 text-sm">{evaluation.forces.map((f, i) => <li key={i} className="flex gap-2"><CheckCircle className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" /><span>{f}</span></li>)}</ul></CardContent>
+                                </Card>
+                              )}
+                              {evaluation.faiblesses && evaluation.faiblesses.length > 0 && (
+                                <Card>
+                                  <CardHeader><CardTitle className="text-base text-amber-600 flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Points à améliorer</CardTitle></CardHeader>
+                                  <CardContent><ul className="space-y-2 text-sm">{evaluation.faiblesses.map((f, i) => <li key={i} className="flex gap-2"><AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" /><span>{f}</span></li>)}</ul></CardContent>
+                                </Card>
+                              )}
+                            </div>
+                          )}
+
+                          {evaluation.prochaines_etapes && evaluation.prochaines_etapes.length > 0 && (
+                            <Card>
+                              <CardHeader><CardTitle className="text-base flex items-center gap-2"><ArrowRight className="h-4 w-4" />Prochaines étapes</CardTitle></CardHeader>
+                              <CardContent><ol className="space-y-2 text-sm list-decimal list-inside">{evaluation.prochaines_etapes.map((s, i) => <li key={i}>{s}</li>)}</ol></CardContent>
+                            </Card>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <Card className="text-center py-8">
+                    <CardContent>
+                      <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">Aucune évaluation disponible pour ce projet.</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* MODULE 1 — Onglet Données d'évaluation détaillées (100% des données) */}
+              <TabsContent value="details" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5" />Données d'évaluation détaillées</CardTitle>
+                    <CardDescription>Toutes les réponses et données saisies pour ce projet (mode lecture complète).</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div><p className="text-muted-foreground text-xs">ID Projet</p><p className="font-mono font-semibold">{formatProjectDisplayId(project.display_id, project.id)}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Titre</p><p className="font-medium">{project.title}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Catégorie</p><p>{project.category || "—"}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Secteur</p><p>{project.sector || "—"}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Pays</p><p>{project.country || "—"}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Ville</p><p>{project.city || "—"}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Objectif de financement</p><p>{project.funding_goal?.toLocaleString() || 0} FCFA</p></div>
+                      <div><p className="text-muted-foreground text-xs">Fonds levés</p><p>{project.funds_raised?.toLocaleString() || 0} FCFA</p></div>
+                      <div><p className="text-muted-foreground text-xs">Fonds disponibles porteur</p><p>{project.fonds_disponibles || "—"}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Statut</p><p>{project.status}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Score risque</p><p>{project.risk_score || "—"}</p></div>
+                      <div><p className="text-muted-foreground text-xs">Date création</p><p>{new Date(project.created_at).toLocaleString('fr-FR')}</p></div>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">Description complète</p>
+                      <div className="bg-muted/30 rounded p-3 whitespace-pre-wrap">{project.description || "—"}</div>
+                    </div>
+                    {evaluation?.answers && Object.keys(evaluation.answers).length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-2 mt-4">Réponses détaillées d'évaluation ({Object.keys(evaluation.answers).length} réponses)</p>
+                        <div className="bg-muted/30 rounded p-3 space-y-2">
+                          {Object.entries(evaluation.answers).map(([k, v]) => (
+                            <div key={k} className="border-b border-border/50 pb-2 last:border-0">
+                              <p className="font-medium text-xs text-muted-foreground">{k}</p>
+                              <p className="break-words">{typeof v === "object" ? JSON.stringify(v) : String(v)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {project.documents && Array.isArray(project.documents) && project.documents.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-2 mt-4">Documents joints ({project.documents.length})</p>
+                        <ul className="space-y-1">
+                          {project.documents.map((d: any, i: number) => (
+                            <li key={i} className="flex items-center gap-2"><FileText className="h-4 w-4" /><span>{d.name || d.title || `Document ${i + 1}`}</span></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -341,21 +491,17 @@ const ProjectDetail = () => {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg">{update.title}</CardTitle>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(update.created_at).toLocaleDateString()}
-                          </span>
+                          <span className="text-sm text-muted-foreground">{new Date(update.created_at).toLocaleDateString()}</span>
                         </div>
                       </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground">{update.content}</p>
-                      </CardContent>
+                      <CardContent><p className="text-muted-foreground">{update.content}</p></CardContent>
                     </Card>
                   ))
                 ) : (
                   <Card className="text-center py-8">
                     <CardContent>
                       <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">{t('projects.noUpdates') || "Aucune actualité pour le moment"}</p>
+                      <p className="text-muted-foreground">Aucune actualité pour le moment</p>
                     </CardContent>
                   </Card>
                 )}
@@ -365,7 +511,7 @@ const ProjectDetail = () => {
                 <Card className="text-center py-8">
                   <CardContent>
                     <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">{t('projects.teamInfo') || "Informations sur l'équipe bientôt disponibles"}</p>
+                    <p className="text-muted-foreground">Informations sur l'équipe bientôt disponibles</p>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -374,7 +520,7 @@ const ProjectDetail = () => {
                 <Card className="text-center py-8">
                   <CardContent>
                     <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">{t('projects.documentsInfo') || "Documents disponibles après investissement"}</p>
+                    <p className="text-muted-foreground">Documents disponibles après investissement</p>
                   </CardContent>
                 </Card>
               </TabsContent>
