@@ -19,9 +19,11 @@ import {
 
 interface Project {
   id: string;
+  display_id?: string | null;
   title: string;
   description: string;
   category: string;
+  sector?: string | null;
   country: string;
   city: string;
   funding_goal: number;
@@ -30,6 +32,30 @@ interface Project {
   risk_score: string;
   created_at: string;
   owner_id: string;
+  fonds_disponibles?: string | null;
+  documents?: any;
+  image_url?: string | null;
+}
+
+interface Evaluation {
+  id: string;
+  score_global: number;
+  score_juridique?: number;
+  score_financier?: number;
+  score_technique?: number;
+  score_marche?: number;
+  score_impact?: number;
+  niveau?: string | null;
+  niveau_maturite?: number | null;
+  interpretation?: string | null;
+  resume?: string | null;
+  forces?: string[] | null;
+  faiblesses?: string[] | null;
+  recommandations?: string[] | null;
+  prochaines_etapes?: string[] | null;
+  parcours_recommande?: string | null;
+  answers?: Record<string, any> | null;
+  created_at: string;
 }
 
 interface ProjectUpdate {
@@ -46,6 +72,7 @@ const ProjectDetail = () => {
   const { toast } = useToast();
   
   const [project, setProject] = useState<Project | null>(null);
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [contributorsCount, setContributorsCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -57,6 +84,7 @@ const ProjectDetail = () => {
       fetchProject();
       fetchUpdates();
       fetchContributors();
+      fetchEvaluation();
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -97,6 +125,22 @@ const ProjectDetail = () => {
       setUpdates(data || []);
     } catch (error) {
       console.error('Error fetching updates:', error);
+    }
+  };
+
+  const fetchEvaluation = async () => {
+    try {
+      const { data } = await (supabase
+        .from("project_evaluations")
+        .select("*")
+        .eq("project_id", id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle() as any);
+      if (data) setEvaluation(data);
+    } catch (e) {
+      console.error("Eval fetch error", e);
     }
   };
 
