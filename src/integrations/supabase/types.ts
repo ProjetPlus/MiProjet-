@@ -98,6 +98,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contributions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_payments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contributions_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -352,6 +359,39 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_log: {
+        Row: {
+          action: string
+          created_at: string
+          enabled: boolean
+          id: string
+          reason: string | null
+          source: string | null
+          triggered_by: string | null
+          triggered_by_email: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          enabled: boolean
+          id?: string
+          reason?: string | null
+          source?: string | null
+          triggered_by?: string | null
+          triggered_by_email?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          reason?: string | null
+          source?: string | null
+          triggered_by?: string | null
+          triggered_by_email?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -560,6 +600,7 @@ export type Database = {
           created_at: string
           creation_date: string | null
           description: string | null
+          display_id: string | null
           employees_count: number | null
           has_accounting: boolean | null
           has_bank_account: boolean | null
@@ -581,6 +622,7 @@ export type Database = {
           created_at?: string
           creation_date?: string | null
           description?: string | null
+          display_id?: string | null
           employees_count?: number | null
           has_accounting?: boolean | null
           has_bank_account?: boolean | null
@@ -602,6 +644,7 @@ export type Database = {
           created_at?: string
           creation_date?: string | null
           description?: string | null
+          display_id?: string | null
           employees_count?: number | null
           has_accounting?: boolean | null
           has_bank_account?: boolean | null
@@ -1007,6 +1050,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string | null
           avatar_url: string | null
           bio: string | null
           city: string | null
@@ -1020,6 +1064,10 @@ export type Database = {
           last_name: string | null
           phone: string | null
           referral_code: string | null
+          referred_by_code: string | null
+          referred_by_user_id: string | null
+          suspended_at: string | null
+          suspended_reason: string | null
           total_commissions: number | null
           total_referrals: number | null
           updated_at: string
@@ -1027,6 +1075,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          account_status?: string | null
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
@@ -1040,6 +1089,10 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           referral_code?: string | null
+          referred_by_code?: string | null
+          referred_by_user_id?: string | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
           total_commissions?: number | null
           total_referrals?: number | null
           updated_at?: string
@@ -1047,6 +1100,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          account_status?: string | null
           avatar_url?: string | null
           bio?: string | null
           city?: string | null
@@ -1060,6 +1114,10 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           referral_code?: string | null
+          referred_by_code?: string | null
+          referred_by_user_id?: string | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
           total_commissions?: number | null
           total_referrals?: number | null
           updated_at?: string
@@ -1071,15 +1129,20 @@ export type Database = {
       project_evaluations: {
         Row: {
           actions_structuration: string[] | null
+          answers: Json | null
           certified_at: string | null
           created_at: string
           faiblesses: string[] | null
           forces: string[] | null
           id: string
+          interpretation: string | null
           is_active: boolean | null
           is_certified: boolean | null
           messages_strategiques: string[] | null
           niveau: string | null
+          niveau_maturite: number | null
+          parcours_recommande: string | null
+          prochaines_etapes: string[] | null
           project_id: string
           recommandations: string[] | null
           resume: string | null
@@ -1087,23 +1150,31 @@ export type Database = {
           score_financier: number | null
           score_global: number | null
           score_impact: number | null
+          score_juridique: number | null
+          score_marche: number | null
           score_maturite: number | null
           score_porteur: number | null
           score_projet: number | null
+          score_technique: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           actions_structuration?: string[] | null
+          answers?: Json | null
           certified_at?: string | null
           created_at?: string
           faiblesses?: string[] | null
           forces?: string[] | null
           id?: string
+          interpretation?: string | null
           is_active?: boolean | null
           is_certified?: boolean | null
           messages_strategiques?: string[] | null
           niveau?: string | null
+          niveau_maturite?: number | null
+          parcours_recommande?: string | null
+          prochaines_etapes?: string[] | null
           project_id: string
           recommandations?: string[] | null
           resume?: string | null
@@ -1111,23 +1182,31 @@ export type Database = {
           score_financier?: number | null
           score_global?: number | null
           score_impact?: number | null
+          score_juridique?: number | null
+          score_marche?: number | null
           score_maturite?: number | null
           score_porteur?: number | null
           score_projet?: number | null
+          score_technique?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           actions_structuration?: string[] | null
+          answers?: Json | null
           certified_at?: string | null
           created_at?: string
           faiblesses?: string[] | null
           forces?: string[] | null
           id?: string
+          interpretation?: string | null
           is_active?: boolean | null
           is_certified?: boolean | null
           messages_strategiques?: string[] | null
           niveau?: string | null
+          niveau_maturite?: number | null
+          parcours_recommande?: string | null
+          prochaines_etapes?: string[] | null
           project_id?: string
           recommandations?: string[] | null
           resume?: string | null
@@ -1135,9 +1214,12 @@ export type Database = {
           score_financier?: number | null
           score_global?: number | null
           score_impact?: number | null
+          score_juridique?: number | null
+          score_marche?: number | null
           score_maturite?: number | null
           score_porteur?: number | null
           score_projet?: number | null
+          score_technique?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -1194,6 +1276,7 @@ export type Database = {
           created_at: string
           current_funding: number | null
           description: string | null
+          display_id: string | null
           documents: Json | null
           fonds_disponibles: string | null
           funding_goal: number | null
@@ -1214,6 +1297,7 @@ export type Database = {
           created_at?: string
           current_funding?: number | null
           description?: string | null
+          display_id?: string | null
           documents?: Json | null
           fonds_disponibles?: string | null
           funding_goal?: number | null
@@ -1234,6 +1318,7 @@ export type Database = {
           created_at?: string
           current_funding?: number | null
           description?: string | null
+          display_id?: string | null
           documents?: Json | null
           fonds_disponibles?: string | null
           funding_goal?: number | null
@@ -1384,6 +1469,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_journeys: {
+        Row: {
+          created_at: string
+          current_step: number
+          id: string
+          journey_type: string
+          project_id: string | null
+          status: string | null
+          step_data: Json | null
+          steps_completed: number[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: number
+          id?: string
+          journey_type: string
+          project_id?: string | null
+          status?: string | null
+          step_data?: Json | null
+          steps_completed?: number[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: number
+          id?: string
+          journey_type?: string
+          project_id?: string | null
+          status?: string | null
+          step_data?: Json | null
+          steps_completed?: number[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1457,6 +1581,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_subscriptions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_payments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_subscriptions_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
@@ -1467,7 +1598,25 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_admin_payments: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          currency: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          metadata: Json | null
+          payment_method: string | null
+          payment_reference: string | null
+          phone: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_active_subscription: { Args: { _user_id: string }; Returns: boolean }
