@@ -49,9 +49,8 @@ export const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center space-x-2">
-            <img src={logo} alt="MIPROJET logo" className="h-10 w-auto max-w-[120px] object-contain rounded-lg" />
-            <span className="font-bold text-xl text-foreground hidden sm:inline">MIPROJET</span>
+          <Link to="/" className="flex items-center" aria-label="MIPROJET — Accueil">
+            <img src={logo} alt="MIPROJET" className="h-12 w-auto max-w-[160px] object-contain" />
           </Link>
 
           {/* Desktop Navigation */}

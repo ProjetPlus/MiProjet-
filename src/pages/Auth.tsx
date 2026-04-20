@@ -12,6 +12,7 @@ import { MathCaptcha } from "@/components/MathCaptcha";
 import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react";
 import { z } from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { trackLead } from "@/lib/leadTracking";
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -61,10 +62,26 @@ const Auth = () => {
   const [lastName, setLastName] = useState("");
   const [countryCode, setCountryCode] = useState("+225");
   const [whatsapp, setWhatsapp] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [captchaValid, setCaptchaValid] = useState(false);
+
+  // Capture ?ref= query param and persist
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      const code = ref.toUpperCase();
+      setReferralCode(code);
+      try { localStorage.setItem(REFERRAL_KEY, code); } catch {}
+    } else {
+      try {
+        const stored = localStorage.getItem(REFERRAL_KEY);
+        if (stored) setReferralCode(stored);
+      } catch {}
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     document.title = mode === "login" ? "Connexion | MIPROJET" : "Inscription | MIPROJET";
@@ -160,6 +177,7 @@ const Auth = () => {
               first_name: firstName,
               last_name: lastName,
               whatsapp: fullWhatsapp,
+              referred_by_code: referralCode || null,
             },
           },
         });
@@ -170,9 +188,25 @@ const Auth = () => {
           throw error;
         }
 
-        // Update profile with whatsapp
+        // Update profile with whatsapp + referral code
         if (authData.user) {
-          await supabase.from('profiles').update({ whatsapp: fullWhatsapp }).eq('id', authData.user.id);
+          await supabase.from('profiles').update({
+            whatsapp: fullWhatsapp,
+            referred_by_code: referralCode || null,
+          }).eq('id', authData.user.id);
+
+          // Track lead with source = signup
+          await trackLead("signup", {
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            whatsapp: fullWhatsapp,
+            phone: fullWhatsapp,
+            user_id: authData.user.id,
+            additional_info: { referral_code: referralCode || null },
+          });
+
+          try { localStorage.removeItem(REFERRAL_KEY); } catch {}
         }
 
         toast({ title: "✅ Inscription réussie.", description: "Veuillez confirmer votre adresse email pour activer votre compte et accéder à votre espace sécurisé." });
@@ -260,6 +294,21 @@ const Auth = () => {
                       </div>
                     </div>
                     {errors.whatsapp && <p className="text-sm text-destructive">{errors.whatsapp}</p>}
+                  </div>
+
+                  {/* Referral code (optional) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="refcode">Code de parrainage (optionnel)</Label>
+                    <Input
+                      id="refcode"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                      placeholder="Ex: ABC12345"
+                      maxLength={20}
+                    />
+                    {referralCode && (
+                      <p className="text-xs text-success">Code parrain enregistré : <strong>{referralCode}</strong></p>
+                    )}
                   </div>
                 </>
               )}

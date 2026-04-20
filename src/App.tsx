@@ -30,6 +30,7 @@ import AdminInit from "./pages/admin/AdminInit";
 import ServiceRequest from "./pages/ServiceRequest";
 import ProjectDetail from "./pages/ProjectDetail";
 import AccessRequest from "./pages/AccessRequest";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 
 // Lazy load service and payment pages
 const StructuringService = lazy(() => import("./pages/services/StructuringService"));
@@ -48,6 +49,7 @@ const DocumentDownload = lazy(() => import("./pages/DocumentDownload"));
 const Documents = lazy(() => import("./pages/Documents"));
 const MiProjetPlusLanding = lazy(() => import("./pages/miprojet-plus/MiProjetPlusLanding"));
 const MiProjetPlusApp = lazy(() => import("./pages/miprojet-plus/MiProjetPlusApp"));
+const Journey = lazy(() => import("./pages/Journey"));
 
 const queryClient = new QueryClient();
 
@@ -77,6 +79,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <MaintenanceBanner />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
@@ -111,6 +114,11 @@ const App = () => (
             {/* Dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/*" element={<Dashboard />} />
+            <Route path="/journey" element={
+              <Suspense fallback={<PageLoader />}>
+                <Journey />
+              </Suspense>
+            } />
             <Route path="/project-evaluation/:projectId" element={
               <Suspense fallback={<PageLoader />}>
                 <ProjectEvaluation />
