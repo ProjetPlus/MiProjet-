@@ -12,7 +12,7 @@ import {
   LayoutDashboard, FolderKanban, FileText, DollarSign,
   MessageSquare, Settings, LogOut, Menu, Search,
   Building2, Users, TrendingUp, CreditCard, FileCheck,
-  HelpCircle, ChevronRight, Home
+  HelpCircle, ChevronRight, Home, Compass
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -23,6 +23,7 @@ interface DashboardLayoutProps {
 const getMenuItems = (userType: string, t: (key: string) => string) => {
   const common = [
     { icon: LayoutDashboard, label: t('dashboard.overview') || 'Vue d\'ensemble', href: '/dashboard', id: 'overview' },
+    { icon: Compass, label: 'Mon parcours', href: '/journey', id: 'journey' },
     { icon: MessageSquare, label: t('dashboard.messages') || 'Messages', href: '/dashboard/messages', id: 'messages' },
     { icon: Settings, label: t('dashboard.settings') || 'Paramètres', href: '/dashboard/settings', id: 'settings' },
   ];
@@ -30,41 +31,41 @@ const getMenuItems = (userType: string, t: (key: string) => string) => {
   switch (userType) {
     case 'enterprise':
       return [
-        ...common.slice(0, 1),
+        ...common.slice(0, 2),
         { icon: Building2, label: 'Mon Entreprise', href: '/dashboard/company', id: 'company' },
         { icon: FolderKanban, label: t('dashboard.myProjects') || 'Mes Projets', href: '/dashboard/projects', id: 'projects' },
         { icon: FileText, label: 'Demandes de Service', href: '/dashboard/requests', id: 'requests' },
         { icon: FileCheck, label: 'Documents', href: '/dashboard/documents', id: 'documents' },
         { icon: CreditCard, label: 'Paiements', href: '/dashboard/payments', id: 'payments' },
-        ...common.slice(1),
+        ...common.slice(2),
       ];
     case 'investor':
       return [
-        ...common.slice(0, 1),
+        ...common.slice(0, 2),
         { icon: TrendingUp, label: 'Mes Investissements', href: '/dashboard/investments', id: 'investments' },
         { icon: FolderKanban, label: 'Projets Disponibles', href: '/dashboard/available-projects', id: 'available' },
         { icon: DollarSign, label: 'Portefeuille', href: '/dashboard/portfolio', id: 'portfolio' },
         { icon: FileText, label: 'Rapports', href: '/dashboard/reports', id: 'reports' },
-        ...common.slice(1),
+        ...common.slice(2),
       ];
     case 'funder':
       return [
-        ...common.slice(0, 1),
+        ...common.slice(0, 2),
         { icon: Building2, label: 'Organisation', href: '/dashboard/organization', id: 'organization' },
         { icon: FolderKanban, label: 'Projets Financés', href: '/dashboard/funded-projects', id: 'funded' },
         { icon: Users, label: 'Partenaires', href: '/dashboard/partners', id: 'partners' },
         { icon: FileText, label: 'Rapports d\'Impact', href: '/dashboard/impact', id: 'impact' },
         { icon: CreditCard, label: 'Décaissements', href: '/dashboard/disbursements', id: 'disbursements' },
-        ...common.slice(1),
+        ...common.slice(2),
       ];
     default: // individual
       return [
-        ...common.slice(0, 1),
+        ...common.slice(0, 2),
         { icon: FolderKanban, label: t('dashboard.myProjects') || 'Mes Projets', href: '/dashboard/projects', id: 'projects' },
         { icon: FileText, label: t('dashboard.myDocuments') || 'Mes Documents', href: '/dashboard/documents', id: 'documents' },
         { icon: DollarSign, label: t('dashboard.myInvestments') || 'Mes Investissements', href: '/dashboard/investments', id: 'investments' },
         { icon: CreditCard, label: 'Paiements', href: '/dashboard/payments', id: 'payments' },
-        ...common.slice(1),
+        ...common.slice(2),
       ];
   }
 };

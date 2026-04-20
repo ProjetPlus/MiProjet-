@@ -22,98 +22,49 @@ const services = [
     icon: FileSearch,
     title: "Analyse & Conception de Projet",
     description: "Structuration professionnelle selon la norme ISO 21500",
-    features: [
-      "Étude de faisabilité complète",
-      "Rédaction du business plan",
-      "Analyse des risques",
-      "Définition des besoins de financement",
-      "Score de crédibilité (A, B, C)",
-    ],
-    price: "À partir de 150 000 FCFA",
+    features: ["Étude de faisabilité complète", "Rédaction du business plan", "Analyse des risques", "Définition des besoins de financement", "Score de crédibilité (A, B, C)"],
     popular: true,
   },
   {
     icon: Users,
     title: "Orientation Stratégique",
     description: "Orientation vers l'écosystème adapté",
-    features: [
-      "Orientation vers investisseurs qualifiés",
-      "Orientation vers partenaires techniques",
-      "Orientation vers bailleurs de fonds",
-      "Accompagnement événementiel",
-      "Base de données partenaires",
-    ],
-    price: "Inclus dans le service",
+    features: ["Orientation vers investisseurs qualifiés", "Orientation vers partenaires techniques", "Orientation vers bailleurs de fonds", "Accompagnement événementiel", "Base de données partenaires"],
     popular: false,
   },
   {
     icon: Megaphone,
     title: "Marketing Digital",
     description: "Visibilité maximale pour votre projet",
-    features: [
-      "Stratégie de communication digitale",
-      "Gestion des réseaux sociaux",
-      "Campagnes publicitaires ciblées",
-      "Création de contenu",
-      "Référencement SEO",
-    ],
-    price: "À partir de 100 000 FCFA/mois",
+    features: ["Stratégie de communication digitale", "Gestion des réseaux sociaux", "Campagnes publicitaires ciblées", "Création de contenu", "Référencement SEO"],
     popular: false,
   },
   {
     icon: MessageSquare,
     title: "Consultance",
     description: "Expertise personnalisée pour votre réussite",
-    features: [
-      "Coaching entrepreneurial",
-      "Conseil stratégique",
-      "Optimisation du modèle économique",
-      "Préparation au pitch",
-      "Accompagnement personnalisé",
-    ],
-    price: "À partir de 50 000 FCFA/session",
+    features: ["Coaching entrepreneurial", "Conseil stratégique", "Optimisation du modèle économique", "Préparation au pitch", "Accompagnement personnalisé"],
     popular: false,
   },
   {
     icon: Building,
     title: "Création d'Entreprise",
     description: "Formalisation juridique complète",
-    features: [
-      "Choix du statut juridique",
-      "Rédaction des statuts",
-      "Immatriculation au RCCM",
-      "Obtention du NCC",
-      "Accompagnement administratif",
-    ],
-    price: "À partir de 200 000 FCFA",
+    features: ["Choix du statut juridique", "Rédaction des statuts", "Immatriculation au RCCM", "Obtention du NCC", "Accompagnement administratif"],
     popular: false,
   },
   {
     icon: ClipboardCheck,
     title: "Contrôle & Suivi de Projet",
     description: "Monitoring et reporting transparent",
-    features: [
-      "Tableau de bord en temps réel",
-      "Rapports d'avancement",
-      "Indicateurs de performance",
-      "Alertes et recommandations",
-      "Reporting investisseurs",
-    ],
-    price: "À partir de 75 000 FCFA/mois",
+    features: ["Tableau de bord en temps réel", "Rapports d'avancement", "Indicateurs de performance", "Alertes et recommandations", "Reporting investisseurs"],
     popular: false,
   },
   {
     icon: GraduationCap,
     title: "Formation",
     description: "Développez vos compétences",
-    features: [
-      "Gestion de projet (ISO 21500)",
-      "Entrepreneuriat et business model",
-      "Levée de fonds et pitch",
-      "Marketing et ventes",
-      "Comptabilité et finance",
-    ],
-    price: "À partir de 25 000 FCFA/formation",
+    features: ["Gestion de projet (ISO 21500)", "Entrepreneuriat et business model", "Levée de fonds et pitch", "Marketing et ventes", "Comptabilité et finance"],
     popular: false,
   },
 ];
@@ -207,15 +158,19 @@ const Services = () => {
                         </li>
                       ))}
                     </ul>
-                    <div className="pt-4 border-t border-border">
-                      <p className="font-semibold text-foreground">{service.price}</p>
+                    <div className="pt-4 border-t border-border space-y-2">
+                      <Link to="/contact" className="block">
+                        <Button className="w-full" variant={service.popular ? "hero" : "outline"}>
+                          Demander un devis
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Link to="/contact" className="block">
+                        <Button className="w-full" variant="ghost">
+                          Être contacté
+                        </Button>
+                      </Link>
                     </div>
-                    <Link to="/contact">
-                      <Button className="w-full" variant={service.popular ? "hero" : "outline"}>
-                        Demander un devis
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
                   </CardContent>
                 </Card>
               ))}

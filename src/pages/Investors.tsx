@@ -148,6 +148,23 @@ const Investors = () => {
           </p>
         </div>
 
+        {/* Top CTA — Rejoindre le réseau */}
+        <Card className="mb-12 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/30">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-center md:text-left">
+                <h2 className="text-xl sm:text-2xl font-bold mb-2">Rejoindre notre réseau d'investisseurs</h2>
+                <p className="text-muted-foreground">
+                  Recevez en exclusivité nos meilleures opportunités d'investissement structurées en Afrique.
+                </p>
+              </div>
+              <Button size="lg" className="w-full md:w-auto whitespace-normal" onClick={() => { setSelectedProjectId(null); setShowLeadForm(true); }}>
+                S'inscrire <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Benefits Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {benefits.map((benefit, index) => {
