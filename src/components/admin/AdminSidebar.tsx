@@ -69,6 +69,7 @@ const menuGroups = [
     items: [
       { id: "database", label: "Base de données", icon: Shield },
       { id: "email-templates", label: "Templates Email", icon: Mail },
+      { id: "maintenance", label: "Maintenance", icon: Settings },
       { id: "settings", label: "Paramètres", icon: Settings },
     ],
   },

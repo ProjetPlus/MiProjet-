@@ -39,6 +39,7 @@ import { AdminFirecrawlScraper } from "@/components/admin/AdminFirecrawlScraper"
 import { AdminMPOverview } from "@/components/admin/AdminMPOverview";
 import { AdminMPCertificationsManager } from "@/components/admin/AdminMPCertificationsManager";
 import { AdminMPAnalytics } from "@/components/admin/AdminMPAnalytics";
+import { AdminMaintenanceManager } from "@/components/admin/AdminMaintenanceManager";
 
 const AdminDashboard = () => {
   const { user, isAdmin, loading, adminChecked, signOut } = useAuth();
@@ -250,6 +251,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="settings" className="space-y-6">
               <AdminSettingsManager />
+            </TabsContent>
+
+            <TabsContent value="maintenance" className="space-y-6">
+              <AdminMaintenanceManager />
             </TabsContent>
 
             <TabsContent value="mp-overview" className="space-y-6">

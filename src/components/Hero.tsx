@@ -37,8 +37,8 @@ export const Hero = () => {
 
   return (
     <section className="relative min-h-[85vh] sm:min-h-[90vh] lg:min-h-screen flex items-center pt-16 sm:pt-20 pb-8 sm:pb-12 overflow-hidden bg-primary">
-      <div className="container mx-auto px-4 sm:px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-full">
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-12 items-center min-w-0">
           {/* Left Content */}
           <div className="space-y-4 sm:space-y-6 lg:space-y-8 text-primary-foreground text-left">
             {/* News Ticker */}
@@ -59,11 +59,11 @@ export const Hero = () => {
             )}
 
             {/* Title */}
-            <div className="space-y-4">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-white">
+            <div className="space-y-3 sm:space-y-4 min-w-0">
+              <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-white break-words">
                 Plateforme Panafricaine
               </h1>
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-accent leading-snug">
+              <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-accent leading-snug break-words">
                 de Structuration et d'Orientation de Projets
               </h2>
             </div>
@@ -108,18 +108,18 @@ export const Hero = () => {
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 min-w-0">
               <Link to="/submit-project" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
-                  {t('hero.submitProject')}
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold whitespace-normal text-center">
+                  <span className="truncate">{t('hero.submitProject')}</span>
+                  <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
                 </Button>
               </Link>
               <Link to="/projects" className="w-full sm:w-auto">
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50"
+                  className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50 whitespace-normal text-center"
                 >
                   {t('hero.discoverProjects')}
                 </Button>

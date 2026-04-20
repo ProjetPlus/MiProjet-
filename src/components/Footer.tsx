@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Mail, MapPin, Phone, Facebook, Twitter, Linkedin, Instagram } from "lucide-react";
+import { Mail, MapPin, Phone, Facebook, Linkedin, MessageCircle } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 import logo from "@/assets/logo-miprojet-new.png";
 import cachet from "@/assets/cachet-miprojet.png";
@@ -20,10 +20,14 @@ export const Footer = () => {
             <p className="text-muted-foreground text-sm leading-relaxed">{t('footer.description')}</p>
             <p className="text-primary text-sm font-medium italic">{t('footer.tagline')}</p>
             <div className="flex gap-4">
-              <a href="https://facebook.com/miprojet" target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Facebook"><Facebook className="h-5 w-5" /></a>
-              <a href="https://twitter.com/miprojet" target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Twitter"><Twitter className="h-5 w-5" /></a>
-              <a href="https://linkedin.com/company/miprojet" target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary transition-colors" aria-label="LinkedIn"><Linkedin className="h-5 w-5" /></a>
-              <a href="https://instagram.com/miprojet" target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Instagram"><Instagram className="h-5 w-5" /></a>
+              <a href="https://www.facebook.com/mivprojet" target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Facebook"><Facebook className="h-5 w-5" /></a>
+              <a href="https://www.linkedin.com/in/marcelkonan/" target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary transition-colors" aria-label="LinkedIn"><Linkedin className="h-5 w-5" /></a>
+              <a href="https://www.tiktok.com/@miprojet" target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary transition-colors" aria-label="TikTok">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.07A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84-.1z"/>
+                </svg>
+              </a>
+              <a href="https://wa.me/2250716792121" target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary transition-colors" aria-label="WhatsApp"><MessageCircle className="h-5 w-5" /></a>
             </div>
           </div>
 
