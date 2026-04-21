@@ -50,6 +50,7 @@ const Documents = lazy(() => import("./pages/Documents"));
 const MiProjetPlusLanding = lazy(() => import("./pages/miprojet-plus/MiProjetPlusLanding"));
 const MiProjetPlusApp = lazy(() => import("./pages/miprojet-plus/MiProjetPlusApp"));
 const Journey = lazy(() => import("./pages/Journey"));
+const ShortLink = lazy(() => import("./pages/ShortLink"));
 
 const queryClient = new QueryClient();
 
