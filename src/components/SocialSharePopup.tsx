@@ -18,9 +18,38 @@ interface SocialSharePopupProps {
 
 const SITE_URL = "https://miprojet.agricapital.ci";
 const SUPABASE_FUNCTIONS_BASE = "https://nrrgqnruoylwztddkntm.supabase.co/functions/v1";
+const PUBLIC_SHORT_BASE = "https://ivoireprojet.com";
+
+// Map shareType → short path segment
+const TYPE_TO_SHORT: Record<string, string> = {
+  news: "n",
+  opportunity: "o",
+  project: "p",
+  document: "d",
+  ebook: "d",
+};
+
+// Convert "art003-04-026" → "art003/04/026"
+function slugToPath(slug: string): string {
+  // Split into prefix+rank (e.g. "art003"), month, year-suffix
+  const parts = slug.split("-");
+  return parts.join("/");
+}
 
 function getShareUrl(props: SocialSharePopupProps): string {
-  // Prefer the short slug → cleanest URL: /functions/v1/og-image?s=art003-04-026
+  // Prefer ultra-short public URL: https://ivoireprojet.com/n/art003/04/026
+  if (props.shortSlug && props.shareType && TYPE_TO_SHORT[props.shareType]) {
+    const seg = TYPE_TO_SHORT[props.shareType];
+    return `${PUBLIC_SHORT_BASE}/${seg}/${slugToPath(props.shortSlug)}`;
+  }
+  if (props.shareType && props.shareId) {
+    return `${SUPABASE_FUNCTIONS_BASE}/og-image?type=${encodeURIComponent(props.shareType)}&id=${encodeURIComponent(props.shareId)}`;
+  }
+  return props.url || SITE_URL;
+}
+
+// For the debug button: always serve OG metadata via the edge function
+function getOgDebugUrl(props: SocialSharePopupProps): string {
   if (props.shortSlug) {
     return `${SUPABASE_FUNCTIONS_BASE}/og-image?s=${encodeURIComponent(props.shortSlug)}`;
   }
@@ -66,6 +95,7 @@ export const SocialSharePopup = (props: SocialSharePopupProps) => {
   const { open, onClose, title, description, cta = "Découvrir sur MIPROJET" } = props;
   const { toast } = useToast();
   const shareUrl = getShareUrl(props);
+  const ogDebugUrl = getOgDebugUrl(props);
 
   const handleShare = (platform: typeof platforms[0]) => {
     window.open(platform.getUrl(shareUrl, title, description, cta), "_blank", "width=600,height=400");
@@ -78,7 +108,7 @@ export const SocialSharePopup = (props: SocialSharePopupProps) => {
   };
 
   const copyDebugLink = () => {
-    navigator.clipboard.writeText(shareUrl);
+    navigator.clipboard.writeText(ogDebugUrl);
     toast({ title: "Lien debug copié", description: "Le lien OG a été copié pour vérifier les meta tags." });
   };
 
@@ -114,7 +144,7 @@ export const SocialSharePopup = (props: SocialSharePopupProps) => {
                 <Bug className="h-4 w-4" />
                 Copier lien de debug OG
               </Button>
-              <Button variant="outline" className="gap-2" onClick={() => window.open(shareUrl, "_blank") }>
+              <Button variant="outline" className="gap-2" onClick={() => window.open(ogDebugUrl, "_blank") }>
                 <ExternalLink className="h-4 w-4" />
                 Ouvrir debug OG
               </Button>

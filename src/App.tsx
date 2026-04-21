@@ -50,6 +50,7 @@ const Documents = lazy(() => import("./pages/Documents"));
 const MiProjetPlusLanding = lazy(() => import("./pages/miprojet-plus/MiProjetPlusLanding"));
 const MiProjetPlusApp = lazy(() => import("./pages/miprojet-plus/MiProjetPlusApp"));
 const Journey = lazy(() => import("./pages/Journey"));
+const ShortLink = lazy(() => import("./pages/ShortLink"));
 
 const queryClient = new QueryClient();
 
@@ -191,6 +192,29 @@ const App = () => (
             <Route path="/news" element={<News />} />
             <Route path="/news/:id" element={<News />} />
             <Route path="/actualites" element={<News />} />
+
+            {/* Short share links: /n/art003/04/026, /o/..., /p/..., /d/... */}
+            {(["n", "o", "p", "d"] as const).map((t) => (
+              <Route key={t} path={`/${t}/:a/:b/:c`} element={
+                <Suspense fallback={<PageLoader />}>
+                  <ShortLink />
+                </Suspense>
+              } />
+            ))}
+            {(["n", "o", "p", "d"] as const).map((t) => (
+              <Route key={`${t}-2`} path={`/${t}/:a/:b`} element={
+                <Suspense fallback={<PageLoader />}>
+                  <ShortLink />
+                </Suspense>
+              } />
+            ))}
+            {(["n", "o", "p", "d"] as const).map((t) => (
+              <Route key={`${t}-1`} path={`/${t}/:a`} element={
+                <Suspense fallback={<PageLoader />}>
+                  <ShortLink />
+                </Suspense>
+              } />
+            ))}
             
             {/* MiProjet+ */}
             <Route path="/miprojet-plus" element={
