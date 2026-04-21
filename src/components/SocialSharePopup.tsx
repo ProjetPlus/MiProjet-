@@ -18,9 +18,38 @@ interface SocialSharePopupProps {
 
 const SITE_URL = "https://miprojet.agricapital.ci";
 const SUPABASE_FUNCTIONS_BASE = "https://nrrgqnruoylwztddkntm.supabase.co/functions/v1";
+const PUBLIC_SHORT_BASE = "https://ivoireprojet.com";
+
+// Map shareType → short path segment
+const TYPE_TO_SHORT: Record<string, string> = {
+  news: "n",
+  opportunity: "o",
+  project: "p",
+  document: "d",
+  ebook: "d",
+};
+
+// Convert "art003-04-026" → "art003/04/026"
+function slugToPath(slug: string): string {
+  // Split into prefix+rank (e.g. "art003"), month, year-suffix
+  const parts = slug.split("-");
+  return parts.join("/");
+}
 
 function getShareUrl(props: SocialSharePopupProps): string {
-  // Prefer the short slug → cleanest URL: /functions/v1/og-image?s=art003-04-026
+  // Prefer ultra-short public URL: https://ivoireprojet.com/n/art003/04/026
+  if (props.shortSlug && props.shareType && TYPE_TO_SHORT[props.shareType]) {
+    const seg = TYPE_TO_SHORT[props.shareType];
+    return `${PUBLIC_SHORT_BASE}/${seg}/${slugToPath(props.shortSlug)}`;
+  }
+  if (props.shareType && props.shareId) {
+    return `${SUPABASE_FUNCTIONS_BASE}/og-image?type=${encodeURIComponent(props.shareType)}&id=${encodeURIComponent(props.shareId)}`;
+  }
+  return props.url || SITE_URL;
+}
+
+// For the debug button: always serve OG metadata via the edge function
+function getOgDebugUrl(props: SocialSharePopupProps): string {
   if (props.shortSlug) {
     return `${SUPABASE_FUNCTIONS_BASE}/og-image?s=${encodeURIComponent(props.shortSlug)}`;
   }
