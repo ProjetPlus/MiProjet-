@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SlugConfig {
@@ -17,11 +17,11 @@ const PREFIX_MAP: Record<string, SlugConfig> = {
 
 export default function ShortLink() {
   const params = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
-  // Route is /:type/:a/:b/:c → join into slug "art003-04-026"
-  const type = (params as any).type as string | undefined;
+  const type = location.pathname.split("/").filter(Boolean)[0];
   const a = (params as any).a as string | undefined;
   const b = (params as any).b as string | undefined;
   const c = (params as any).c as string | undefined;
