@@ -100,6 +100,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Support short path style: /n/art003/04/026 → art003-04-026
+    if (!slugParam) {
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      const shortMap: Record<string, string> = { n: "art", o: "opp", p: "prj", d: "doc" };
+      const first = pathParts[0];
+      if (first && shortMap[first] && pathParts.length >= 2) {
+        // Take all remaining segments and join with '-' to form the slug
+        const remaining = pathParts.slice(1).join("-");
+        slugParam = remaining;
+      }
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Resolve a short slug -> type + id
