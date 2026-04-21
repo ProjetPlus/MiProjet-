@@ -192,6 +192,23 @@ const App = () => (
             <Route path="/news" element={<News />} />
             <Route path="/news/:id" element={<News />} />
             <Route path="/actualites" element={<News />} />
+
+            {/* Short share links: /n/art003/04/026, /o/..., /p/..., /d/... */}
+            <Route path="/:type(n|o|p|d)/:a/:b/:c" element={
+              <Suspense fallback={<PageLoader />}>
+                <ShortLink />
+              </Suspense>
+            } />
+            <Route path="/:type(n|o|p|d)/:a/:b" element={
+              <Suspense fallback={<PageLoader />}>
+                <ShortLink />
+              </Suspense>
+            } />
+            <Route path="/:type(n|o|p|d)/:a" element={
+              <Suspense fallback={<PageLoader />}>
+                <ShortLink />
+              </Suspense>
+            } />
             
             {/* MiProjet+ */}
             <Route path="/miprojet-plus" element={
