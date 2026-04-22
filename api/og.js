@@ -3,8 +3,28 @@
 
 const SUPABASE_URL = "https://nrrgqnruoylwztddkntm.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ycmdxbnJ1b3lsd3p0ZGRrbnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNTYxOTYsImV4cCI6MjA4NjczMjE5Nn0.p2bFufIgC7dcHIWTBBGdhkEbS9XXxiEdIY2kymE0dZ0";
-const SITE_URL = "https://miprojet.agricapital.ci";
+const SITE_URL = "https://ivoireprojet.com";
 const DEFAULT_IMAGE = `${SITE_URL}/miprojet-og-cover.png`;
+
+function stripHtml(str) {
+  return (str || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&#39;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildShortPublicUrl(type, shortSlug, id) {
+  const shortMap = { news: 'n', opportunity: 'o', project: 'p', document: 'd', ebook: 'd' };
+  if (shortSlug && shortMap[type]) return `${SITE_URL}/${shortMap[type]}/${shortSlug.replace(/-/g, '/')}`;
+  if (type === 'news') return `${SITE_URL}/news/${id}`;
+  if (type === 'opportunity') return `${SITE_URL}/opportunities/${id}`;
+  if (type === 'project') return `${SITE_URL}/projects/${id}`;
+  return `${SITE_URL}/documents/${id}`;
+}
 
 async function fetchFromSupabase(table, id, fields) {
   const res = await fetch(
@@ -67,36 +87,36 @@ export default async function handler(req, res) {
 
   try {
     if (type === "news") {
-      const data = await fetchFromSupabase("news", id, "title,excerpt,content,image_url");
+      const data = await fetchFromSupabase("news", id, "title,excerpt,content,image_url,short_slug");
       if (data) {
         title = data.title;
-        description = data.excerpt || data.content?.substring(0, 160) || description;
+        description = stripHtml(data.excerpt) || stripHtml(data.content).substring(0, 220) || description;
         image = data.image_url || DEFAULT_IMAGE;
-        url = `${SITE_URL}/news/${id}`;
+        url = buildShortPublicUrl(type, data.short_slug, id);
       }
     } else if (type === "opportunity") {
-      const data = await fetchFromSupabase("opportunities", id, "title,description,content,image_url");
+      const data = await fetchFromSupabase("opportunities", id, "title,description,content,image_url,short_slug");
       if (data) {
         title = data.title;
-        description = data.description || data.content?.substring(0, 160) || description;
+        description = stripHtml(data.description) || stripHtml(data.content).substring(0, 220) || description;
         image = data.image_url || DEFAULT_IMAGE;
-        url = `${SITE_URL}/opportunities/${id}`;
+        url = buildShortPublicUrl(type, data.short_slug, id);
       }
     } else if (type === "project") {
-      const data = await fetchFromSupabase("projects", id, "title,description,image_url");
+      const data = await fetchFromSupabase("projects", id, "title,description,image_url,short_slug");
       if (data) {
         title = data.title;
-        description = data.description?.substring(0, 160) || description;
+        description = stripHtml(data.description).substring(0, 220) || description;
         image = data.image_url || DEFAULT_IMAGE;
-        url = `${SITE_URL}/projects/${id}`;
+        url = buildShortPublicUrl(type, data.short_slug, id);
       }
     } else if (type === "document") {
-      const data = await fetchFromSupabase("platform_documents", id, "title,description,cover_url");
+      const data = await fetchFromSupabase("platform_documents", id, "title,description,cover_url,short_slug");
       if (data) {
         title = data.title;
-        description = data.description?.substring(0, 160) || description;
+        description = stripHtml(data.description).substring(0, 220) || description;
         image = data.cover_url || DEFAULT_IMAGE;
-        url = `${SITE_URL}/documents/${id}`;
+        url = buildShortPublicUrl(type, data.short_slug, id);
       }
     }
   } catch (e) {
