@@ -55,6 +55,7 @@ const OpportunityDetail = () => {
   const [showShare, setShowShare] = useState(false);
   const [related, setRelated] = useState<any[]>([]);
   const { toast } = useToast();
+  const newsletter = useNewsletterSubscribe("opportunity");
 
   useEffect(() => {
     if (opportunity) {
@@ -273,7 +274,7 @@ const OpportunityDetail = () => {
           relatedTitle="Opportunités similaires"
           relatedItems={relatedItems}
           relatedHref="/opportunities"
-          onNewsletterSubmit={(email) => toast({ title: "Inscription enregistrée", description: `Merci, ${email} sera tenu informé.` })}
+          onNewsletterSubmit={(email) => newsletter.subscribe(email)}
         />
       </main>
       <Footer />
