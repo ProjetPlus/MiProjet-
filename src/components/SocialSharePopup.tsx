@@ -2,6 +2,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, ExternalLink, Bug } from "lucide-react";
+import {
+  PUBLIC_SHORT_BASE,
+  TYPE_TO_SHORT,
+  buildShortPublicUrl,
+  buildOgEndpoint,
+  type ShareKind,
+} from "@/lib/shortSlug";
 
 interface SocialSharePopupProps {
   open: boolean;
@@ -11,51 +18,27 @@ interface SocialSharePopupProps {
   description: string;
   imageUrl?: string;
   cta?: string;
-  shareType?: "news" | "opportunity" | "project" | "document" | "ebook";
+  shareType?: ShareKind;
   shareId?: string;
   shortSlug?: string;
 }
 
-const SUPABASE_FUNCTIONS_BASE = "https://nrrgqnruoylwztddkntm.supabase.co/functions/v1";
-const PUBLIC_SHORT_BASE = "https://ivoireprojet.com";
-
-// Map shareType → short path segment
-const TYPE_TO_SHORT: Record<string, string> = {
-  news: "n",
-  opportunity: "o",
-  project: "p",
-  document: "d",
-  ebook: "d",
-};
-
-// Convert "art003-04-026" → "art003/04/026"
-function slugToPath(slug: string): string {
-  // Split into prefix+rank (e.g. "art003"), month, year-suffix
-  const parts = slug.split("-");
-  return parts.join("/");
-}
-
 function getShareUrl(props: SocialSharePopupProps): string {
-  // Prefer ultra-short public URL: https://ivoireprojet.com/n/art003/04/026
   if (props.shortSlug && props.shareType && TYPE_TO_SHORT[props.shareType]) {
-    const seg = TYPE_TO_SHORT[props.shareType];
-    return `${PUBLIC_SHORT_BASE}/${seg}/${slugToPath(props.shortSlug)}`;
+    return buildShortPublicUrl(props.shareType, props.shortSlug);
   }
   if (props.shareType && props.shareId) {
-    return `${SUPABASE_FUNCTIONS_BASE}/og-image?type=${encodeURIComponent(props.shareType)}&id=${encodeURIComponent(props.shareId)}`;
+    return buildOgEndpoint({ kind: props.shareType, id: props.shareId });
   }
   return props.url || PUBLIC_SHORT_BASE;
 }
 
-// For the debug button: always serve OG metadata via the edge function
 function getOgDebugUrl(props: SocialSharePopupProps): string {
-  if (props.shortSlug) {
-    return `${SUPABASE_FUNCTIONS_BASE}/og-image?s=${encodeURIComponent(props.shortSlug)}`;
-  }
-  if (props.shareType && props.shareId) {
-    return `${SUPABASE_FUNCTIONS_BASE}/og-image?type=${encodeURIComponent(props.shareType)}&id=${encodeURIComponent(props.shareId)}`;
-  }
-  return props.url || PUBLIC_SHORT_BASE;
+  return buildOgEndpoint({
+    shortSlug: props.shortSlug,
+    kind: props.shareType,
+    id: props.shareId,
+  });
 }
 
 function buildShareText(shareUrl: string, title: string, desc: string, cta: string) {
