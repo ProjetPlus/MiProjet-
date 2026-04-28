@@ -11,9 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Wand2, Loader2, Bold, Italic, List, ListOrdered, Heading1, Heading2,
   Quote, Image, Video, Upload, Sparkles, ImagePlus, FileText, Film, Images, Eye,
-  Paperclip, X
+  Paperclip, X, UserCircle2
 } from "lucide-react";
 import { SocialPreview } from "./SocialPreview";
+import { buildShortPublicUrl, type ShareKind } from "@/lib/shortSlug";
 
 export interface EditorField {
   name: string;
@@ -32,12 +33,13 @@ interface UniversalAIEditorProps {
   contentFieldName?: string;
   onAIGenerate?: () => void;
   storageFolder?: string;
+  shareKind?: ShareKind;
 }
 
 type GenerationOption = 'text_only' | 'with_images';
 
 export const UniversalAIEditor = ({
-  fields, values, onChange, contentFieldName = 'content', storageFolder = 'news-media'
+  fields, values, onChange, contentFieldName = 'content', storageFolder = 'news-media', shareKind = 'news'
 }: UniversalAIEditorProps) => {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
@@ -388,6 +390,9 @@ export const UniversalAIEditor = ({
             content={values[contentFieldName] || ''}
             imageUrl={values['image_url'] || ''}
             videoUrl={values['video_url'] || ''}
+            excerpt={values['excerpt'] || values['description'] || ''}
+            authorName={values['author_name'] || 'MIPROJET'}
+            shortUrl={buildShortPublicUrl(shareKind, values['short_slug'])}
           />
         </DialogContent>
       </Dialog>

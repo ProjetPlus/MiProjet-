@@ -167,7 +167,7 @@ const News = () => {
             subtitle={selectedNews.excerpt}
             image={selectedNews.image_url}
             imageAlt={selectedNews.title}
-            author="MIPROJET"
+            author={(selectedNews as any).author_name || "MIPROJET"}
             dateISO={selectedNews.published_at}
             readingMinutes={readingMinutes}
             viewsCount={selectedNews.views_count}
