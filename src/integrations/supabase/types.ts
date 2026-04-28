@@ -725,6 +725,7 @@ export type Database = {
         Row: {
           archived_at: string | null
           author_id: string | null
+          author_name: string | null
           category: string | null
           content: string
           created_at: string
@@ -743,6 +744,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           author_id?: string | null
+          author_name?: string | null
           category?: string | null
           content: string
           created_at?: string
@@ -761,6 +763,7 @@ export type Database = {
         Update: {
           archived_at?: string | null
           author_id?: string | null
+          author_name?: string | null
           category?: string | null
           content?: string
           created_at?: string
@@ -849,6 +852,7 @@ export type Database = {
           amount_max: number | null
           amount_min: number | null
           author_id: string | null
+          author_name: string | null
           category: string | null
           contact_email: string | null
           contact_phone: string | null
@@ -877,6 +881,7 @@ export type Database = {
           amount_max?: number | null
           amount_min?: number | null
           author_id?: string | null
+          author_name?: string | null
           category?: string | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -905,6 +910,7 @@ export type Database = {
           amount_max?: number | null
           amount_min?: number | null
           author_id?: string | null
+          author_name?: string | null
           category?: string | null
           contact_email?: string | null
           contact_phone?: string | null
