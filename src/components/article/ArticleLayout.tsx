@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { resolveCover, onCoverError } from "@/lib/coverImage";
 
 export interface RelatedItem {
   id: string;
@@ -61,9 +62,6 @@ interface ArticleLayoutProps {
   onNewsletterSubmit?: (email: string) => void;
 }
 
-const FALLBACK_IMG =
-  "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=1600&h=900&fit=crop";
-
 export const ArticleLayout = ({
   backHref,
   backLabel = "Retour",
@@ -93,7 +91,7 @@ export const ArticleLayout = ({
   onNewsletterSubmit,
 }: ArticleLayoutProps) => {
   const navigate = useNavigate();
-  const heroSrc = image || FALLBACK_IMG;
+  const heroSrc = resolveCover(image);
 
   const Stat = ({ label, value }: { label: string; value: string | number | undefined }) => (
     <Card className="border bg-card">
@@ -118,9 +116,7 @@ export const ArticleLayout = ({
           alt={imageAlt || title}
           className="w-full h-full object-cover"
           loading="eager"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = FALLBACK_IMG;
-          }}
+          onError={onCoverError}
         />
       </div>
 
@@ -252,9 +248,7 @@ export const ArticleLayout = ({
                       alt={r.title}
                       loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = FALLBACK_IMG;
-                      }}
+                      onError={onCoverError}
                     />
                   )}
                 </div>

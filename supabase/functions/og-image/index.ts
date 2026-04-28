@@ -127,11 +127,11 @@ Deno.serve(async (req) => {
     if (!slugParam) {
       const pathParts = url.pathname.split("/").filter(Boolean);
       const shortMap: Record<string, string> = { n: "art", o: "opp", p: "prj", d: "doc" };
-      const first = pathParts[0];
-      if (first && shortMap[first] && pathParts.length >= 2) {
-        // Take all remaining segments and join with '-' to form the slug
-        const remaining = pathParts.slice(1).join("-");
-        slugParam = remaining;
+      // Find the first segment that matches a short prefix (n/o/p/d).
+      // The function may be mounted at /functions/v1/og-image/n/<slug>... or at /og-image/n/<slug>...
+      const shortIdx = pathParts.findIndex((p) => shortMap[p]);
+      if (shortIdx >= 0 && pathParts.length > shortIdx + 1) {
+        slugParam = pathParts.slice(shortIdx + 1).join("-");
       }
     }
 
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
 
     const cta = ctaByType[type] || "Découvrir sur MIPROJET";
     const seoDescription = `${description} — ${cta}`.substring(0, 220);
-    const absoluteImage = toAbsoluteUrl(image, SITE_URL);
+    const absoluteImage = toAbsoluteUrl(image || DEFAULT_IMAGE, SITE_URL) || DEFAULT_IMAGE;
 
     if (format === "json") {
       const jsonHeaders = new Headers(corsHeaders);
@@ -215,8 +215,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Allow direct image proxy: /og-image?...&format=image returns a 302 to the cover URL.
+    if (format === "image") {
+      const imgHeaders = new Headers(corsHeaders);
+      imgHeaders.set("location", absoluteImage);
+      imgHeaders.set("cache-control", "public, max-age=3600");
+      return new Response(null, { status: 302, headers: imgHeaders });
+    }
+
     const htmlHeaders = new Headers(corsHeaders);
     htmlHeaders.set("content-type", "text/html; charset=utf-8");
+    htmlHeaders.set("cache-control", "public, max-age=300");
     return new Response(buildHtml({ title, description: seoDescription, image: absoluteImage, pageUrl }), {
       headers: htmlHeaders,
     });

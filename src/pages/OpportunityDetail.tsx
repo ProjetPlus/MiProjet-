@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { SocialSharePopup } from "@/components/SocialSharePopup";
 import { ArticleLayout, RelatedItem } from "@/components/article/ArticleLayout";
+import { useNewsletterSubscribe } from "@/hooks/useNewsletterSubscribe";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -54,6 +55,7 @@ const OpportunityDetail = () => {
   const [showShare, setShowShare] = useState(false);
   const [related, setRelated] = useState<any[]>([]);
   const { toast } = useToast();
+  const newsletter = useNewsletterSubscribe("opportunity");
 
   useEffect(() => {
     if (opportunity) {
@@ -272,7 +274,7 @@ const OpportunityDetail = () => {
           relatedTitle="Opportunités similaires"
           relatedItems={relatedItems}
           relatedHref="/opportunities"
-          onNewsletterSubmit={(email) => toast({ title: "Inscription enregistrée", description: `Merci, ${email} sera tenu informé.` })}
+          onNewsletterSubmit={(email) => newsletter.subscribe(email)}
         />
       </main>
       <Footer />

@@ -10,14 +10,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Wand2, Loader2, Bold, Italic, List, ListOrdered, Heading1, Heading2,
-  Quote, Image, Video, Upload, Sparkles, ImagePlus, FileText, Film, Images, Eye
+  Quote, Image, Video, Upload, Sparkles, ImagePlus, FileText, Film, Images, Eye,
+  Paperclip, X
 } from "lucide-react";
 import { SocialPreview } from "./SocialPreview";
 
 export interface EditorField {
   name: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'upload-image' | 'upload-video' | 'tags';
+  type: 'text' | 'textarea' | 'select' | 'upload-image' | 'upload-video' | 'upload-media' | 'upload-document' | 'tags';
   options?: { value: string; label: string }[];
   placeholder?: string;
   required?: boolean;
@@ -33,7 +34,7 @@ interface UniversalAIEditorProps {
   storageFolder?: string;
 }
 
-type GenerationOption = 'text_only' | 'with_cover' | 'with_cover_and_illustrations';
+type GenerationOption = 'text_only' | 'with_images';
 
 export const UniversalAIEditor = ({
   fields, values, onChange, contentFieldName = 'content', storageFolder = 'news-media'
@@ -47,9 +48,8 @@ export const UniversalAIEditor = ({
   const editorRef = useRef<HTMLDivElement>(null);
 
   const generationOptions: { value: GenerationOption; label: string; icon: React.ReactNode; description: string }[] = [
-    { value: 'text_only', label: 'Sans image', icon: <FileText className="h-8 w-8" />, description: 'Génération textuelle pure, sans visuel' },
-    { value: 'with_cover', label: 'Avec image de couverture', icon: <ImagePlus className="h-8 w-8" />, description: 'L\'IA génère une image ultra-réaliste de couverture' },
-    { value: 'with_cover_and_illustrations', label: 'Couverture + illustrations', icon: <Images className="h-8 w-8" />, description: 'Image de couverture + illustrations dans le contenu' },
+    { value: 'with_images', label: 'Génération avec images', icon: <ImagePlus className="h-8 w-8" />, description: 'Image de couverture ultra-réaliste + illustrations contextuelles si pertinentes' },
+    { value: 'text_only', label: 'Génération sans images', icon: <FileText className="h-8 w-8" />, description: 'Contenu textuel uniquement, structuré et professionnel' },
   ];
 
   const handleGenerateClick = () => {
@@ -96,7 +96,7 @@ export const UniversalAIEditor = ({
     }
 
     // Generate cover image if requested
-    if (option === 'with_cover' || option === 'with_cover_and_illustrations') {
+    if (option === 'with_images') {
       await generateAIImage(content);
     }
   };
@@ -226,6 +226,114 @@ export const UniversalAIEditor = ({
             {value && <video src={value} className="h-24 w-auto rounded border" controls />}
           </div>
         );
+      case 'upload-media': {
+        const isVideo = typeof value === 'string' && /\.(mp4|webm|mov|m4v|ogg)$/i.test(value);
+        return (
+          <div key={field.name} className="space-y-2 md:col-span-2">
+            <Label className="flex items-center gap-2">
+              <Images className="h-4 w-4" />{field.label} — image ou vidéo (max {field.maxSize || 500} Mo)
+            </Label>
+            <div className="flex gap-2 items-start">
+              <Input
+                type="file"
+                accept="image/*,video/*"
+                disabled={uploading === field.name}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(field.name, file, field.maxSize || 500);
+                }}
+                className="flex-1"
+              />
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => generateAIImage(values[contentFieldName] || values['title'] || 'business')}
+                disabled={generatingImage}>
+                {generatingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                <span className="ml-1 hidden sm:inline">IA</span>
+              </Button>
+              {value && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => onChange(field.name, '')} title="Retirer">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {value && (
+              <div className="rounded border bg-muted/30 p-2 inline-block">
+                {isVideo
+                  ? <video src={value} controls className="h-32 w-auto rounded" />
+                  : <img src={value} alt="Aperçu couverture" className="h-32 w-auto object-cover rounded" />}
+                <p className="text-xs text-muted-foreground mt-1">📌 Définie comme couverture (utilisée comme OG image au partage)</p>
+              </div>
+            )}
+            {uploading === field.name && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Téléchargement…
+              </div>
+            )}
+          </div>
+        );
+      }
+      case 'upload-document': {
+        const docs: Array<{ url: string; name: string }> = Array.isArray(value)
+          ? value
+          : (value ? [{ url: value as string, name: (value as string).split('/').pop() || 'document' }] : []);
+        const handleDocUpload = async (file: File) => {
+          const ok = ['pdf','doc','docx','xls','xlsx','ppt','pptx','pub','odt','ods','odp','txt','csv'];
+          const ext = file.name.split('.').pop()?.toLowerCase();
+          if (!ext || !ok.includes(ext)) {
+            toast({ title: 'Format non supporté', description: 'PDF, Word, Excel, PowerPoint, Publisher uniquement', variant: 'destructive' });
+            return;
+          }
+          if (file.size > (field.maxSize || 50) * 1024 * 1024) {
+            toast({ title: 'Fichier trop volumineux', description: `Maximum ${field.maxSize || 50} Mo`, variant: 'destructive' });
+            return;
+          }
+          setUploading(field.name);
+          try {
+            const fileName = `documents/${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+            const { error } = await supabase.storage.from('documents').upload(fileName, file, { upsert: true });
+            if (error) throw error;
+            const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
+            const next = [...docs, { url: urlData.publicUrl, name: file.name }];
+            onChange(field.name, next);
+            toast({ title: '✅ Document ajouté' });
+          } catch (e: any) {
+            toast({ title: "Erreur d'upload", description: e?.message, variant: 'destructive' });
+          } finally { setUploading(null); }
+        };
+        return (
+          <div key={field.name} className="space-y-2 md:col-span-2">
+            <Label className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />{field.label} — PDF, Word, Excel, PowerPoint, Publisher
+            </Label>
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.pub,.odt,.ods,.odp,.txt,.csv"
+              disabled={uploading === field.name}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocUpload(f); }}
+            />
+            {docs.length > 0 && (
+              <ul className="space-y-1 mt-2">
+                {docs.map((d, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm bg-muted/40 rounded px-3 py-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <a href={d.url} target="_blank" rel="noopener noreferrer" className="flex-1 truncate hover:underline">{d.name}</a>
+                    <Button type="button" variant="ghost" size="sm"
+                      onClick={() => onChange(field.name, docs.filter((_, j) => j !== i))}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {uploading === field.name && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Téléchargement…
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">💡 N'ajoutez un document que si nécessaire.</p>
+          </div>
+        );
+      }
       case 'tags':
         return (
           <div key={field.name} className="space-y-2">

@@ -13,6 +13,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { fr, enUS, ar, zhCN, es, de } from "date-fns/locale";
 import { SocialSharePopup } from "@/components/SocialSharePopup";
 import { ArticleLayout, RelatedItem } from "@/components/article/ArticleLayout";
+import { useNewsletterSubscribe } from "@/hooks/useNewsletterSubscribe";
 import { useToast } from "@/hooks/use-toast";
 
 interface NewsItem {
@@ -40,6 +41,7 @@ const News = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showShare, setShowShare] = useState(false);
   const { toast } = useToast();
+  const newsletter = useNewsletterSubscribe("news");
 
   const getLocale = () => {
     switch (language) {
@@ -177,9 +179,7 @@ const News = () => {
             relatedTitle="Articles similaires"
             relatedItems={related}
             relatedHref="/news"
-            onNewsletterSubmit={(email) =>
-              toast({ title: "Inscription enregistrée", description: `Merci, ${email} sera tenu informé.` })
-            }
+            onNewsletterSubmit={(email) => newsletter.subscribe(email)}
           />
         </main>
 
