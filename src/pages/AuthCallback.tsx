@@ -3,11 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, Loader2 } from "lucide-react";
 
-const SUPER_ADMIN_EMAILS = new Set(["innocentkoffi1@gmail.com", "marcelkonan@ivoireprojet.com"]);
-
-const resolveRedirect = async (email?: string | null) => {
+const resolveRedirect = async (_email?: string | null) => {
   const { data } = await supabase.rpc("current_user_has_role", { _role: "admin" });
-  return data === true || (!!email && SUPER_ADMIN_EMAILS.has(email.toLowerCase())) ? "/admin" : "/dashboard";
+  return data === true ? "/admin" : "/dashboard";
 };
 
 const AuthCallback = () => {
