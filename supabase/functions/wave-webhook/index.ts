@@ -22,23 +22,39 @@ serve(async (req) => {
     const rawBody = await req.text();
     console.log('Wave webhook received:', rawBody.substring(0, 500));
 
-    // Verify webhook signature if secret is configured
+    // Verify webhook signature — REQUIRED, no bypass
     const webhookSecret = Deno.env.get('WAVE_WEBHOOK_SECRET');
-    if (webhookSecret) {
-      const signature = req.headers.get('wave-signature') || req.headers.get('x-wave-signature');
-      if (signature) {
-        const expectedSig = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
-        const sigBuffer = Buffer.from(signature, 'hex');
-        const expectedBuffer = Buffer.from(expectedSig, 'hex');
-        if (sigBuffer.length !== expectedBuffer.length || !sigBuffer.equals(expectedBuffer)) {
-          console.error('Webhook signature mismatch');
-          return new Response(JSON.stringify({ error: 'Invalid signature' }), {
-            status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-        console.log('Webhook signature verified');
-      }
+    if (!webhookSecret) {
+      console.error('WAVE_WEBHOOK_SECRET is not configured — refusing to process webhook');
+      return new Response(JSON.stringify({ error: 'Webhook not configured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+    const signature = req.headers.get('wave-signature') || req.headers.get('x-wave-signature');
+    if (!signature) {
+      console.error('Missing wave-signature header');
+      return new Response(JSON.stringify({ error: 'Missing signature' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const expectedSig = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+    let sigBuffer: Buffer;
+    let expectedBuffer: Buffer;
+    try {
+      sigBuffer = Buffer.from(signature, 'hex');
+      expectedBuffer = Buffer.from(expectedSig, 'hex');
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid signature format' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    if (sigBuffer.length !== expectedBuffer.length || !sigBuffer.equals(expectedBuffer)) {
+      console.error('Webhook signature mismatch');
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    console.log('Webhook signature verified');
 
     const body = JSON.parse(rawBody);
     const { type, data } = body;

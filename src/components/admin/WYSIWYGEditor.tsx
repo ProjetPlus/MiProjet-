@@ -13,7 +13,7 @@ import {
   Heading1, Heading2, Heading3, Quote, Link2, 
   Image, Video, AlignLeft, AlignCenter, AlignRight,
   Undo, Redo, Type, Strikethrough, Code, Loader2,
-  Wand2, Upload
+  Wand2, Upload, Paperclip
 } from "lucide-react";
 
 interface WYSIWYGEditorProps {
@@ -34,11 +34,14 @@ export const WYSIWYGEditor = ({
   onImageUpload
 }: WYSIWYGEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const execCommand = useCallback((command: string, value?: string) => {
@@ -87,7 +90,8 @@ export const WYSIWYGEditor = ({
 
     setIsUploading(true);
     try {
-      const fileName = `editor/${Date.now()}_${file.name}`;
+      const safeName = file.name.replace(/\s+/g, '_');
+      const fileName = `editor/${Date.now()}_${safeName}`;
       const { data, error } = await supabase.storage
         .from('news-media')
         .upload(fileName, file);
@@ -103,10 +107,48 @@ export const WYSIWYGEditor = ({
       }
       
       toast({ title: "Succès", description: "Image téléchargée" });
-    } catch (error) {
-      toast({ title: "Erreur", description: "Impossible de télécharger l'image", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err?.message || "Impossible de télécharger l'image", variant: "destructive" });
     } finally {
       setIsUploading(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ok = ['pdf','doc','docx','xls','xlsx','ppt','pptx','odt','ods','odp','txt','csv'];
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!ext || !ok.includes(ext)) {
+      toast({ title: "Format non supporté", description: "PDF, Word, Excel, PowerPoint uniquement", variant: "destructive" });
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast({ title: "Erreur", description: "Le document ne doit pas dépasser 50 Mo", variant: "destructive" });
+      return;
+    }
+    setIsUploadingDoc(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userPrefix = user?.id || 'public';
+      const safeName = file.name.replace(/\s+/g, '_');
+      const fileName = `${userPrefix}/editor/${Date.now()}_${safeName}`;
+      const { error } = await supabase.storage.from('documents').upload(fileName, file, { upsert: false });
+      if (error) throw error;
+      // Generate signed URL valid 7 days for the inline link
+      const { data: signed, error: signErr } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(fileName, 60 * 60 * 24 * 7);
+      if (signErr) throw signErr;
+      const linkHtml = `<p><a href="${signed.signedUrl}" target="_blank" rel="noopener">📎 ${file.name}</a></p>`;
+      execCommand('insertHTML', linkHtml);
+      toast({ title: "Succès", description: "Document ajouté" });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err?.message || "Impossible d'uploader le document", variant: "destructive" });
+    } finally {
+      setIsUploadingDoc(false);
+      if (documentInputRef.current) documentInputRef.current.value = "";
     }
   };
 
@@ -295,20 +337,43 @@ export const WYSIWYGEditor = ({
             </DialogContent>
           </Dialog>
           
-          <label>
-            <Toggle size="sm" title="Insérer une image" asChild>
-              <span className="cursor-pointer">
-                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
-              </span>
-            </Toggle>
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              onChange={handleImageUpload}
-              disabled={isUploading}
-            />
-          </label>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            title="Insérer une image"
+            disabled={isUploading}
+            onClick={() => imageInputRef.current?.click()}
+          >
+            {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Image className="h-4 w-4" />}
+          </Button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+            disabled={isUploading}
+          />
+
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            title="Insérer un document (PDF, Word, Excel…)"
+            disabled={isUploadingDoc}
+            onClick={() => documentInputRef.current?.click()}
+          >
+            {isUploadingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+          </Button>
+          <input
+            ref={documentInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.txt,.csv"
+            className="hidden"
+            onChange={handleDocumentUpload}
+            disabled={isUploadingDoc}
+          />
           
           <Toggle size="sm" onPressedChange={handleVideoUrl} title="Insérer une vidéo">
             <Video className="h-4 w-4" />

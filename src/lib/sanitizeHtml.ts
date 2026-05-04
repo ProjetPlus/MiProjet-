@@ -91,13 +91,42 @@ function wrapTables(html: string) {
   return doc.body.firstElementChild?.innerHTML || html;
 }
 
+function stripEmptyBlocks(html: string) {
+  if (typeof DOMParser === "undefined") return html;
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const root = doc.body.firstElementChild;
+  if (!root) return html;
+  const isEmpty = (el: Element) => {
+    const txt = (el.textContent || "").replace(/\u00A0/g, " ").trim();
+    if (txt.length > 0) return false;
+    // Allow if it contains a meaningful child (img, video, iframe, table, hr)
+    if (el.querySelector("img,video,iframe,table,hr,figure")) return false;
+    return true;
+  };
+  // Remove empty headings and empty paragraphs (including those with only <br>)
+  root.querySelectorAll("h1, h2, h3, h4, h5, h6, p, blockquote").forEach((el) => {
+    if (isEmpty(el)) el.remove();
+  });
+  // Collapse consecutive <hr>
+  let prevHr = false;
+  Array.from(root.children).forEach((child) => {
+    if (child.tagName === "HR") {
+      if (prevHr) child.remove();
+      prevHr = true;
+    } else {
+      prevHr = false;
+    }
+  });
+  return root.innerHTML;
+}
+
 export function normalizeArticleHtml(value: string | null | undefined) {
   const raw = (value || "").trim();
   if (!raw) return "";
   const hasHtml = /<\/?[a-z][\s\S]*>/i.test(raw);
   const hasMarkdownStructure = /^#{2,4}\s|^\|.+\|$|\*\*.+\*\*/m.test(raw);
   const source = !hasHtml || hasMarkdownStructure ? markdownishToHtml(raw) : raw;
-  return wrapTables(sanitizeArticleHtml(source));
+  return stripEmptyBlocks(wrapTables(sanitizeArticleHtml(source)));
 }
 
 import DOMPurify from "dompurify";

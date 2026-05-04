@@ -28,8 +28,16 @@ const signupSchema = loginSchema.extend({
 const REFERRAL_KEY = "miprojet_pending_ref";
 
 const isSuperAdminSession = async (_userEmail?: string | null) => {
-  const { data } = await supabase.rpc('current_user_has_role', { _role: 'admin' });
-  return data === true;
+  // Primary source of truth: user_roles via RPC
+  const { data, error } = await supabase.rpc('current_user_has_role', { _role: 'admin' });
+  if (!error && data === true) return true;
+  // Fallback: direct read of user_roles (covers RPC errors after a fresh signin)
+  const { data: u } = await supabase.auth.getUser();
+  if (!u?.user) return false;
+  const { data: row } = await supabase
+    .from('user_roles').select('id')
+    .eq('user_id', u.user.id).eq('role', 'admin').maybeSingle();
+  return !!row;
 };
 
 const countryCodes = [

@@ -75,7 +75,17 @@ serve(async (req) => {
     const action = body.action;
 
     // Restrict privileged actions to admins; force user_id to caller for others
-    if ((action === 'generate_image' || action === 'send_whatsapp') && !isAdmin) {
+    const ADMIN_ONLY_ACTIONS = new Set([
+      'generate_image',
+      'send_whatsapp',
+      'generate_news',
+      'generate_article_html',
+      'generate_universal_content',
+      'generate_opportunity',
+      'generate_evaluation',
+      'generate_email',
+    ]);
+    if (ADMIN_ONLY_ACTIONS.has(action) && !isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });

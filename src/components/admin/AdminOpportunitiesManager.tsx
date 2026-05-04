@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { UniversalAIEditor, type EditorField } from "./UniversalAIEditor";
+import { WYSIWYGEditor } from "./WYSIWYGEditor";
 
 interface Opportunity {
   id: string;
@@ -439,7 +440,12 @@ export const AdminOpportunitiesManager = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Analyse MIPROJET (votre valeur ajoutée)</Label>
-                    <Textarea value={formData.content} onChange={(e) => handleFieldChange('content', e.target.value)} rows={5} placeholder="Analyse approfondie, contexte, conseils stratégiques..." />
+                    <WYSIWYGEditor
+                      value={formData.content}
+                      onChange={(html) => handleFieldChange('content', html)}
+                      placeholder="Analyse approfondie, contexte, conseils stratégiques. Utilisez la barre d'outils pour formater, insérer images / documents / vidéos. Cliquez sur « Générer avec IA » pour structurer automatiquement."
+                      minHeight="320px"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Niveau de compétitivité</Label>
