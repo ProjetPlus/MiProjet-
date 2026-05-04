@@ -26,12 +26,10 @@ const signupSchema = loginSchema.extend({
 });
 
 const REFERRAL_KEY = "miprojet_pending_ref";
-const SUPER_ADMIN_EMAILS = new Set(["innocentkoffi1@gmail.com", "marcelkonan@ivoireprojet.com"]);
 
-const isSuperAdminSession = async (userEmail?: string | null) => {
+const isSuperAdminSession = async (_userEmail?: string | null) => {
   const { data } = await supabase.rpc('current_user_has_role', { _role: 'admin' });
-  const email = userEmail?.toLowerCase();
-  return data === true || (!!email && SUPER_ADMIN_EMAILS.has(email));
+  return data === true;
 };
 
 const countryCodes = [
