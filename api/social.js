@@ -9,6 +9,7 @@ const SITE_URL = "https://ivoireprojet.com";
 const DEFAULT_IMAGE = `${SITE_URL}/miprojet-og-cover.png`;
 
 const BOT_REGEX = /facebookexternalhit|Facebot|Instagram|WhatsApp|LinkedInBot|Twitterbot|Slackbot|TelegramBot|Discordbot|SkypeUriPreview|Googlebot|GoogleImageProxy|Google-HTTP-Java-Client|Google-Apps-Script|Feedfetcher-Google|Gmail|bingbot|Pinterest|redditbot|Embedly|vkShare|W3C_Validator/i;
+const WHATSAPP_REGEX = /WhatsApp/i;
 
 const PREFIX_TABLE = {
   n: { table: "news", type: "news", select: "id,title,excerpt,content,image_url,short_slug" },
@@ -68,6 +69,16 @@ function buildSocialDescription(summary, type, pageUrl) {
   return `${cleanSummary || "Plateforme Panafricaine de Structuration de Projets"} — 👉 ${cta} : ${pageUrl}`.slice(0, 320);
 }
 
+// WhatsApp renders the FIRST line in bold when wrapped with *…* — we use this
+// to highlight the article title in the link preview.
+function buildWhatsappDescription(title, summary, type, pageUrl) {
+  const safeTitle = stripHtml(title).replace(/\*/g, "").trim();
+  const cleanSummary = stripHtml(summary).replace(/\s+/g, " ").slice(0, 160);
+  const cta = ctaFor(type);
+  const body = cleanSummary || "Plateforme Panafricaine de Structuration de Projets";
+  return `*${safeTitle}*\n${body}\n👉 ${cta} : ${pageUrl}`.slice(0, 320);
+}
+
 async function fetchRow(table, slug, select) {
   const url = `${SUPABASE_URL}/rest/v1/${table}?short_slug=eq.${encodeURIComponent(slug)}&select=${select}&limit=1`;
   const r = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
@@ -88,14 +99,18 @@ function buildHtml({ title, description, image, pageUrl }) {
 <meta property="og:description" content="${escapeHtml(description)}" />
 <meta property="og:image" content="${escapeHtml(image)}" />
 <meta property="og:image:secure_url" content="${escapeHtml(image)}" />
+<meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="${escapeHtml(title)}" />
 <meta property="og:url" content="${escapeHtml(pageUrl)}" />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@miprojet" />
+<meta name="twitter:url" content="${escapeHtml(pageUrl)}" />
 <meta name="twitter:title" content="${escapeHtml(title)}" />
 <meta name="twitter:description" content="${escapeHtml(description)}" />
 <meta name="twitter:image" content="${escapeHtml(image)}" />
+<meta name="twitter:image:alt" content="${escapeHtml(title)}" />
 <link rel="canonical" href="${escapeHtml(pageUrl)}" />
 <meta http-equiv="refresh" content="0;url=${escapeHtml(pageUrl)}" />
 </head><body><p>Redirection vers <a href="${escapeHtml(pageUrl)}">${escapeHtml(title)}</a>…</p></body></html>`;
@@ -131,14 +146,21 @@ export default async function handler(req, res) {
   let description = "Plateforme Panafricaine de Structuration de Projets";
   let image = DEFAULT_IMAGE;
 
+  let summary = "";
+  let resolvedTitle = title;
+  let resolvedType = cfg?.type;
   try {
     if (cfg && flatSlug) {
       const row = await fetchRow(cfg.table, flatSlug, cfg.select);
       if (row) {
-        title = row.title || title;
+        resolvedTitle = row.title || title;
+        title = resolvedTitle;
         const rawImage = resolveImage(row);
         image = buildCoverProxy({ prefix, flatSlug, id: row.id, image: rawImage });
-        description = buildSocialDescription(row.excerpt || row.description || row.content || "", cfg.type, pageUrl);
+        summary = row.excerpt || row.description || row.content || "";
+        description = WHATSAPP_REGEX.test(ua)
+          ? buildWhatsappDescription(resolvedTitle, summary, cfg.type, pageUrl)
+          : buildSocialDescription(summary, cfg.type, pageUrl);
       }
     }
   } catch (e) {
