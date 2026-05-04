@@ -1,176 +1,125 @@
 
+# Plan d'action complet
 
-# Plan — Finalisation MIPROJET (Modules restants + Compléments + Responsive)
+## 1. Éditeurs admin – uploads & création d'opportunités
 
-## Vue d'ensemble
+### Problèmes
+- WYSIWYGEditor (actualités) n'upload plus images/documents : la balise `<Toggle asChild>` enveloppe un `<span>` à l'intérieur d'un `<label>` ; le clic ouvre rarement l'input. Aucun bouton « document » n'existe dans la barre d'outils actualité.
+- AdminOpportunitiesManager : le bouton « Nouvel appel à projets » n'ouvre pas réellement le formulaire complet sur certains parcours, et l'éditeur de contenu IA n'est pas exposé pour le corps de l'article.
 
-Implémentation complète de tout ce qui reste : Module 5 (sources de leads), Module 12 (journal maintenance), page `/journey` avec export PDF, corrections responsive mobile, et **toutes les corrections du document `Complément.docx`** (page d'accueil, footer, services, investisseurs, ressources, alignement entonnoir Projet → Évaluation → Structuration → Financement).
+### Correctifs
+1. **WYSIWYGEditor.tsx** :
+   - Restructurer la barre : remplacer `<Toggle asChild>` autour d'un input file par un vrai `<Button type="button">` qui déclenche `inputRef.current.click()`. Idem pour les documents.
+   - Ajouter un bouton **« Document » (Paperclip)** qui upload vers le bucket privé `documents/` et insère dans le HTML un lien `<a href>` (pdf/doc/xls/ppt). Limite 50 Mo.
+   - Préfixer le `fileName` par `${user.id}/editor/...` pour respecter la politique RLS « folder-per-user » du bucket `documents`.
+2. **AdminOpportunitiesManager.tsx** :
+   - Ajouter, dans la SECTION D – Contenu stratégique, un `WYSIWYGEditor` pour le champ `content` (assistance IA déjà disponible via le bouton « Générer avec IA »).
+   - Vérifier que `Dialog` s'ouvre bien et que `resetForm()` ne ferme pas le dialog lui-même quand on clique « Nouveau » — corriger l'ordre `resetForm(); setIsDialogOpen(true);`.
+   - Le `UniversalAIEditor` reste pour l'image de couverture / titre, mais le corps long passe par WYSIWYG pour cohérence avec actualités.
 
----
+## 2. Affichage public des opportunités calqué sur les actualités
 
-## 1. Page d'accueil & Footer (Complément §1)
+- `src/pages/Opportunities.tsx` : reproduire la mise en page de `News.tsx` (card list, hero, filtres, badges, pagination, lien vers `OpportunityDetail`).
+- `OpportunityDetail.tsx` : utiliser `ArticleLayout` (déjà utilisé pour news) pour un rendu identique.
 
-**Navigation.tsx**
-- Supprimer le texte « MIPROJET » à côté du logo (logo seul, cliquable, redirige vers `/`)
-- Logo agrandi légèrement pour rester lisible sans le texte
+## 3. Sections vides avec barre verte (capture)
 
-**Footer.tsx**
-- Email officiel : `infos@ivoireprojet.com` (vérifier) + ajouter numéro WhatsApp correct
-- Réseaux sociaux corrigés :
-  - Facebook → `https://www.facebook.com/mivprojet`
-  - LinkedIn → `https://www.linkedin.com/in/marcelkonan/`
-  - TikTok (nouvelle icône) → lien fourni
-- Retirer Twitter/Instagram non utilisés
+### Cause
+Le sélecteur Tailwind `prose-h2:pl-4 prose-h2:border-l-4 prose-h2:border-primary` applique la barre verte à **tout** `<h2>`, y compris les `<h2>` vides ou contenant uniquement `<br>` / espaces générés par l'éditeur.
 
----
+### Correctif (`src/index.css` + `ArticleLayout.tsx`)
+- Ajouter une règle CSS globale qui masque les titres vides :
+  ```css
+  .article-body :is(h1,h2,h3,h4):empty,
+  .article-body :is(h1,h2,h3,h4):has(> br:only-child),
+  .article-body :is(h1,h2,h3,h4):not(:has(*)):where(:not(:has(:not(:empty)))) { display: none; }
+  ```
+- Étape supplémentaire dans `normalizeArticleHtml` : retirer les `<h2></h2>`, `<h3></h3>`, `<p></p>`, `<hr>` orphelins et les `<h*><br/></h*>` avant rendu (via DOMParser, branche client). S'applique aux articles déjà publiés, sans toucher au contenu en base.
 
-## 2. Module Projets (Complément §2)
+## 4. OG/Twitter, WhatsApp & cache d'image
 
-**SubmitProject.tsx** — après soumission réussie :
-- Toast + écran de succès :
-  > « Votre projet a été enregistré avec succès. Passez maintenant à l'étape suivante : évaluer votre projet avec MIPROJET+ pour connaître son niveau de financement. »
-- Bouton **« Évaluer mon projet (MIPROJET+) »** → redirige vers `/project-evaluation?projectId=...`
+### a. Parité Twitter ↔ OG
+Déjà alignés dans `api/social.js` (`twitter:title/description/image` reprennent les mêmes valeurs OG avec CTA + lien). Ajouter explicitement `twitter:url` et `twitter:site` pour complétude.
 
----
+### b. WhatsApp – titre en gras
+WhatsApp n'utilise PAS le tag `og:title` pour le formatage gras ; il met automatiquement en gras la **première ligne** du `og:description` quand la description commence par `*texte*`. 
+→ Adapter `buildSocialDescription` pour préfixer la description envoyée aux crawlers WhatsApp uniquement (détection UA `WhatsApp`) avec `*${title}*\n\n${résumé}…` et garder la version standard pour les autres.
 
-## 3. Comment ça marche (Complément §3)
+### c. Image de couverture WhatsApp
+- Forcer `og:image` ≤ 300 Ko et < 600x315 ratio recommandé via `og-cover.js` (déjà fait) — vérifier que la fonction renvoie bien `Content-Type: image/jpeg` et un `Content-Length` correct sinon WhatsApp rejette.
+- Ajouter `og:image:type` = `image/jpeg`.
 
-**HowItWorks.tsx** + traductions — refonte 5 étapes alignées MIPROJET+ :
-1. Soumettre son projet
-2. Évaluation (score MIPROJET+)
-3. Analyse & recommandations
-4. Structuration
-5. Mise en relation investisseurs
+### d. Purge du cache OG/proxy lors d'une mise à jour
+- Nouvelle Edge Function `purge-og-cache` (admin only) qui :
+  - prend `{ prefix, slug }`,
+  - appelle l'endpoint Vercel `/api/og-cover?…&v=${Date.now()}` pour recharger,
+  - déclenche le re-scrape Facebook : `POST graph.facebook.com/?id=URL&scrape=true`,
+  - ping LinkedIn `https://www.linkedin.com/sensors/beacon` (best effort).
+- Dans `AdminNewsManager` / `AdminOpportunitiesManager`, après update/publish, appeler automatiquement cette fonction.
+- Ajouter un bouton manuel « Rafraîchir l'aperçu social » dans la liste admin.
 
----
+### e. Endpoint debug
+- Nouvelle route Vercel `api/og-debug.js` : `GET /api/og-debug?prefix=n&slug=art015-04-026` → renvoie en JSON :
+  ```json
+  { url, title, description, ogImage, twitterCard, finalCoverProxy, sourceRow }
+  ```
+  Permet de diagnostiquer rapidement.
 
-## 4. Module Services (Complément §4)
+## 5. Sécurité (scan + super admins)
 
-**Services.tsx**
-- **Supprimer tous les prix affichés** (À partir de X FCFA)
-- Remplacer par deux CTA : `Demander un devis` et `Être contacté`
-- Après soumission d'un service → redirection vers évaluation MIPROJET+ avec message d'invitation
+### a. Findings restants
+1. **Bucket `documents` public** → migration SQL : `UPDATE storage.buckets SET public = false WHERE id = 'documents';`
+2. **Politique JWT non vérifiée sur `leads`** → `DROP POLICY` puis recréer avec `has_role(auth.uid(),'admin') OR has_role(auth.uid(),'sales')`.
+3. **`wave-webhook`** → enforcer signature : retourner 500 si `WAVE_WEBHOOK_SECRET` absent, 401 si header manquant, comparer en temps constant.
+4. **`miprojet-assistant`** → étendre `requireAdmin` aux actions `generate_news`, `generate_article_html`, `generate_universal_content`, `generate_opportunity`, `generate_evaluation`, `generate_email`.
+5. **`send-lead-confirmation`** → ne plus accepter `downloadUrl` libre : recevoir `documentId`, charger en service-role, générer un signed URL 24 h ; valider l'email via regex stricte ; rate-limit IP simple en mémoire.
+6. **`database_backups`** → ajouter policies UPDATE/DELETE admin.
+7. **`leads` insert anon** → policy anon avec validation (email regex, longueur nom, source ∈ liste).
+8. **Leaked password protection** → ne peut pas être activé via SQL ; on documentera dans un toast admin et on ouvrira automatiquement l'URL Supabase. (Manuel obligatoire — Supabase ne fournit pas d'API.)
 
----
+### b. Super admins jamais redirigés correctement
+- `useAuth.ts` : remettre une route post-connexion basée sur `current_user_has_role('admin')` consulté **à chaque changement de session** (`onAuthStateChange`) et **après refresh** (`getSession`). 
+- Si admin → `navigate('/admin', { replace: true })` depuis `Auth.tsx` et `AuthCallback.tsx`. 
+- Couvrir les emails listés dans `grant_lifetime_subscription` : `innocentkoffi1@gmail.com`, `marcelkonan@ivoireprojet.com`, etc. — déjà admin via le trigger, donc le RPC suffira.
+- Ajouter un test manuel : login → refresh `/` → doit aller `/admin`.
 
-## 5. Page Investisseurs (Complément §5)
+## 6. Tests de partage WhatsApp
 
-**Investors.tsx** — déplacer le bloc « Rejoindre notre réseau d'investisseurs » + bouton **S'inscrire** en haut de page (juste après le hero).
+Pour chaque type (news, opportunity, project, document), je lancerai après déploiement :
+```
+curl -A "WhatsApp/2.23.0" https://ivoireprojet.com/n/<slug>
+curl -A "WhatsApp/2.23.0" https://ivoireprojet.com/o/<slug>
+```
+Et je vérifierai via `api/og-debug` que `og:image`, `og:title`, `og:description` sont conformes.
 
----
+## 7. Mémoire sécurité
 
-## 6. Module Ressources (Complément §6)
-
-**Documents.tsx / Forum.tsx / SuccessStories.tsx**
-- Vérifier que `AdminDocumentsManager` permet l'upload (déjà implémenté)
-- Si Forum vide → masquer temporairement avec bandeau « Bientôt disponible »
-- Page Témoignages → seed quelques témoignages par défaut depuis la BDD
-
----
-
-## 7. Module 5 — Sources de leads (auto-tracking)
-
-**Tracker automatique de la source dans `leads.lead_source`** :
-| Action utilisateur            | `lead_source` enregistré |
-|-------------------------------|--------------------------|
-| Inscription (Auth.tsx)        | `signup`                 |
-| Demande de service            | `service_request`        |
-| Parrainage (lien `?ref=`)     | `referral`               |
-| Inscription événement/webinar | `event`                  |
-| Téléchargement ebook          | `ebook` (déjà OK)        |
-| Formulaire de contact         | `contact`                |
-
-**AdminLeadsManager.tsx** — nouveau panneau **« Répartition par source »** :
-- Graphique camembert (recharts) avec compte par source
-- Cartes KPI : total leads, % par canal, top source du mois
-
----
-
-## 8. Module 12 — Journal de maintenance
-
-**Nouveau composant `AdminMaintenanceManager.tsx`** dans Admin → Système :
-- Switch ON/OFF maintenance (manuel uniquement)
-- Modal de confirmation avec **raison obligatoire** avant activation/désactivation
-- Tableau des entrées de `maintenance_log` (date, action ON/OFF, déclencheur, raison, source)
-- Bandeau global rouge sur le site quand maintenance ON (lecture de `platform_settings.maintenance_mode`)
-
----
-
-## 9. Module 10 — Page `/journey` dédiée
-
-**Nouvelle route `/journey`** :
-- Sidebar utilisateur : entrée « Mon parcours » (icône `Compass`)
-- Layout 2 colonnes (desktop) / empilé (mobile) — parcours **Activités existantes** + **Startup** côte à côte
-- Réutilise le composant `UserJourney`
-- Bouton **« Exporter en PDF »** utilisant `jspdf` (génère un récap des étapes complétées + recommandations)
+Mise à jour de `mem://security` pour rappeler :
+- bucket `documents` privé,
+- policies leads/admin via `has_role`,
+- webhooks signature obligatoire,
+- éditeur HTML toujours sanitisé par DOMPurify.
 
 ---
 
-## 10. Responsive mobile (captures fournies)
+## Détails techniques par fichier
 
-Problèmes visibles sur 360px :
-- Hero : titre déborde horizontalement (« Plateforme Panafricaine » coupé)
-- Bouton « Soumettre » coupé à droite
-- News ticker : texte tronqué hors viewport
-- Bulle chat virtuelle masque la stat « 65+ »
+| Fichier | Action |
+|---|---|
+| `src/components/admin/WYSIWYGEditor.tsx` | Refonte boutons upload, ajout bouton document, `useRef<HTMLInputElement>`, scope user |
+| `src/components/admin/AdminOpportunitiesManager.tsx` | WYSIWYG sur `content`, fix dialog, IA hook |
+| `src/pages/Opportunities.tsx` | Refonte UI calquée News |
+| `src/pages/OpportunityDetail.tsx` | Bascule sur `ArticleLayout` |
+| `src/lib/sanitizeHtml.ts` | Strip headings/p vides, br seuls |
+| `src/index.css` | CSS masquage titres vides |
+| `api/social.js` | WhatsApp : `*titre*` dans description, `twitter:url/site`, debug headers |
+| `api/og-cover.js` | Forcer JPEG ≤ 300 Ko, `Content-Length` |
+| `api/og-debug.js` (NEW) | Endpoint JSON diagnostic |
+| `supabase/functions/purge-og-cache/` (NEW) | Re-scrape Facebook / refresh proxy |
+| `supabase/functions/wave-webhook/index.ts` | Signature obligatoire |
+| `supabase/functions/miprojet-assistant/index.ts` | Admin gate étendu |
+| `supabase/functions/send-lead-confirmation/index.ts` | documentId + signed URL |
+| Migration SQL | bucket privé, policies leads/backups, anon leads |
+| `src/hooks/useAuth.ts`, `src/pages/Auth.tsx`, `src/pages/AuthCallback.tsx` | Redirection admin systématique |
 
-**Corrections** :
-- `Hero.tsx` : `text-3xl sm:text-4xl lg:text-6xl` au lieu de `text-5xl` direct, `break-words`, padding réduit en mobile, `overflow-x-hidden` sur le container
-- News ticker : `truncate` strict, max 1 ligne en mobile
-- Boutons CTA : `w-full sm:w-auto` + `whitespace-normal text-center` pour éviter coupure
-- `StatsSection` : repositionner avec `grid-cols-2 gap-3` mobile, centrage texte
-- `VirtualAssistant` : décaler la bulle (`bottom-20 right-4`) pour ne pas masquer le contenu, taille réduite mobile (`h-12 w-12`)
-- Audit global : ajouter `overflow-x-hidden` au `body` dans `index.css`, vérifier toutes les sections marketing avec `min-w-0` sur les enfants flex
-
----
-
-## 11. Build & qualité
-
-- Vérifier qu'aucune référence aux fichiers/composants supprimés ne casse le build
-- Nettoyer les imports inutilisés
-- Vérifier les types TypeScript après mise à jour des props
-
----
-
-## Détails techniques
-
-**Migrations DB** : aucune nouvelle migration nécessaire (toutes les tables existent : `leads.lead_source`, `maintenance_log`, `user_journeys`, `platform_settings`).
-
-**Nouvelles dépendances** : aucune (jspdf déjà présent, recharts déjà présent).
-
-**Fichiers créés** :
-- `src/pages/Journey.tsx`
-- `src/components/admin/AdminMaintenanceManager.tsx`
-- `src/components/MaintenanceBanner.tsx`
-- `src/components/admin/LeadsSourceChart.tsx`
-- `src/lib/leadTracking.ts` (helper centralisé `trackLead(source, data)`)
-
-**Fichiers modifiés** :
-- `src/components/Navigation.tsx` (logo seul)
-- `src/components/Footer.tsx` (réseaux sociaux + contacts)
-- `src/components/Hero.tsx` (responsive)
-- `src/components/HowItWorks.tsx` + `src/i18n/translations.ts` (5 nouvelles étapes)
-- `src/pages/Services.tsx` (supprimer prix, CTA devis)
-- `src/pages/Investors.tsx` (CTA en haut)
-- `src/pages/SubmitProject.tsx` (écran post-soumission)
-- `src/pages/Auth.tsx` (tracker `signup` source)
-- `src/components/services/EnterpriseForm.tsx` + `StructuringForm.tsx` (tracker `service_request` + redirection MP+)
-- `src/components/admin/AdminLeadsManager.tsx` (graphique sources)
-- `src/components/dashboard/DashboardLayout.tsx` (entrée sidebar Mon parcours)
-- `src/components/admin/AdminSidebar.tsx` (entrée Maintenance dans Système)
-- `src/pages/admin/AdminDashboard.tsx` (case `maintenance`)
-- `src/App.tsx` (route `/journey` + `MaintenanceBanner` global)
-- `src/components/VirtualAssistant.tsx` (position bulle mobile)
-- `src/index.css` (overflow-x-hidden global)
-
-**Test end-to-end** (à valider après implémentation) :
-1. Inscription avec code parrainage → lead créé avec `lead_source=signup`
-2. Onglet Parcours → étapes Startup cochables
-3. Admin → Paiements → journal avec filtres
-4. Admin → Utilisateurs → Suspendre/Activer
-5. Admin → Demandes → boutons email/WhatsApp
-6. Mobile 360px → aucun débordement horizontal
-7. Page d'accueil → logo seul cliquable, footer corrigé, étapes alignées
-8. Services → aucun prix visible, CTA devis
-9. Maintenance ON → bandeau rouge global
-
+Approuvez ce plan pour que je l'exécute en parallèle.
