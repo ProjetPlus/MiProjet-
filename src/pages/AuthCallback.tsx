@@ -4,8 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, Loader2 } from "lucide-react";
 
 const resolveRedirect = async (_email?: string | null) => {
-  const { data } = await supabase.rpc("current_user_has_role", { _role: "admin" });
-  return data === true ? "/admin" : "/dashboard";
+  const { data, error } = await supabase.rpc("current_user_has_role", { _role: "admin" });
+  if (!error && data === true) return "/admin";
+  const { data: u } = await supabase.auth.getUser();
+  if (u?.user) {
+    const { data: row } = await supabase
+      .from("user_roles").select("id")
+      .eq("user_id", u.user.id).eq("role", "admin").maybeSingle();
+    if (row) return "/admin";
+  }
+  return "/dashboard";
 };
 
 const AuthCallback = () => {

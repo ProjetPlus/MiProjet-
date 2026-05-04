@@ -19,26 +19,26 @@ export const useAuth = () => {
     adminChecked: false,
   });
 
-  const checkAdminRole = useCallback(async (userId: string) => {
+  const checkAdminRole = useCallback(async (_userId: string) => {
     try {
-      void userId;
+      // Try the recommended RPC; fall back to a direct read of user_roles
+      let isAdmin = false;
       const { data, error } = await supabase.rpc('current_user_has_role', { _role: 'admin' });
       if (!error) {
-        setAuthState(prev => ({ 
-          ...prev, 
-          isAdmin: data === true,
-          adminChecked: true,
-          loading: false
-        }));
+        isAdmin = data === true;
       } else {
-        console.error('Error checking admin role:', error);
-        setAuthState(prev => ({ 
-          ...prev, 
-          isAdmin: false,
-          adminChecked: true,
-          loading: false
-        }));
+        console.error('current_user_has_role failed, falling back:', error.message);
+        const { data: row } = await supabase
+          .from('user_roles').select('id')
+          .eq('user_id', _userId).eq('role', 'admin').maybeSingle();
+        isAdmin = !!row;
       }
+      setAuthState(prev => ({
+        ...prev,
+        isAdmin,
+        adminChecked: true,
+        loading: false,
+      }));
     } catch (err) {
       console.error('Error checking admin role:', err);
       setAuthState(prev => ({ 
