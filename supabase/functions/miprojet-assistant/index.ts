@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +41,30 @@ serve(async (req) => {
   }
 
   try {
+    // --- AUTH GATE ---
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    const { data: userResult, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userResult?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    const callerUserId = userResult.user.id;
+    const { data: adminRow } = await supabase
+      .from("user_roles").select("id")
+      .eq("user_id", callerUserId).eq("role", "admin").maybeSingle();
+    const isAdmin = !!adminRow;
+
     const body = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
@@ -48,6 +73,16 @@ serve(async (req) => {
     }
 
     const action = body.action;
+
+    // Restrict privileged actions to admins; force user_id to caller for others
+    if ((action === 'generate_image' || action === 'send_whatsapp') && !isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    if (body && typeof body === 'object' && 'user_id' in body && !isAdmin) {
+      body.user_id = callerUserId;
+    }
 
     // ===== AI IMAGE GENERATION =====
     if (action === 'generate_image') {
