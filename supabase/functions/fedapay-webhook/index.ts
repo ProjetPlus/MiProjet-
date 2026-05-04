@@ -30,9 +30,20 @@ serve(async (req) => {
 
     console.log('Webhook received:', JSON.stringify(payload, null, 2));
 
-    // Verify webhook signature if secret is configured
+    // Verify webhook signature — REQUIRED for security
+    if (!FEDAPAY_WEBHOOK_SECRET) {
+      console.error('FEDAPAY_WEBHOOK_SECRET not configured — rejecting');
+      return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     const signature = req.headers.get('x-fedapay-signature');
-    if (FEDAPAY_WEBHOOK_SECRET && signature) {
+    if (!signature) {
+      return new Response(JSON.stringify({ error: 'Missing signature' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    {
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
         'raw',
@@ -41,19 +52,15 @@ serve(async (req) => {
         false,
         ['sign']
       );
-      
-      const signatureBytes = await crypto.subtle.sign(
-        'HMAC',
-        key,
-        encoder.encode(body)
-      );
-      
+      const signatureBytes = await crypto.subtle.sign('HMAC', key, encoder.encode(body));
       const computedSignature = Array.from(new Uint8Array(signatureBytes))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
-      
       if (signature !== computedSignature) {
-        console.warn('Webhook signature mismatch - continuing anyway');
+        console.warn('Webhook signature mismatch - rejecting');
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
     }
 

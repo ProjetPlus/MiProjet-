@@ -27,6 +27,43 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Auth gate: allow only if (a) no admin exists yet (bootstrap), or
+    // (b) the caller is authenticated and already has the admin role.
+    const { count: adminCount } = await supabaseAdmin
+      .from("user_roles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin");
+
+    if ((adminCount ?? 0) > 0) {
+      const authHeader = req.headers.get("Authorization") ?? "";
+      const token = authHeader.replace(/^Bearer\s+/i, "");
+      if (!token) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Unauthorized" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        );
+      }
+      const { data: userResult, error: userErr } = await supabaseAdmin.auth.getUser(token);
+      if (userErr || !userResult?.user) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Unauthorized" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        );
+      }
+      const { data: roleRow } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", userResult.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!roleRow) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Forbidden" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        );
+      }
+    }
+
     const userData: UserData = await req.json();
     
     // Validate required fields

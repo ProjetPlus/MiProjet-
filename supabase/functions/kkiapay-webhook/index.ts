@@ -12,7 +12,39 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+
+    // Verify signature — REQUIRED
+    const KKIAPAY_WEBHOOK_SECRET = Deno.env.get('KKIAPAY_WEBHOOK_SECRET');
+    if (!KKIAPAY_WEBHOOK_SECRET) {
+      console.error('KKIAPAY_WEBHOOK_SECRET not configured — rejecting');
+      return new Response(JSON.stringify({ success: false, error: 'Webhook secret not configured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const signature = req.headers.get('x-kkiapay-signature') || req.headers.get('x-signature');
+    if (!signature) {
+      return new Response(JSON.stringify({ success: false, error: 'Missing signature' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    {
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw', encoder.encode(KKIAPAY_WEBHOOK_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+      );
+      const sigBytes = await crypto.subtle.sign('HMAC', key, encoder.encode(rawBody));
+      const computed = Array.from(new Uint8Array(sigBytes))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      if (signature !== computed) {
+        return new Response(JSON.stringify({ success: false, error: 'Invalid signature' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    const payload = JSON.parse(rawBody);
     console.log('KKIAPAY Webhook received:', JSON.stringify(payload));
 
     const {

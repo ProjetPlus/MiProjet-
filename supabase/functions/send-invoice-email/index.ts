@@ -26,6 +26,29 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Auth: require admin caller
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    const { data: userResult, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userResult?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    const { data: adminRow } = await supabase
+      .from("user_roles").select("id")
+      .eq("user_id", userResult.user.id).eq("role", "admin").maybeSingle();
+    if (!adminRow) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     const { invoiceId, recipientEmail, recipientName, invoiceNumber, amount, dueDate, paymentLink }: InvoiceEmailRequest = await req.json();
 
     // Create notification in database

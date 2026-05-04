@@ -31,7 +31,23 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { amount, currency = 'XOF', description, customer, projectId, serviceRequestId, userId, callbackUrl } = await req.json();
+    // Auth: require valid JWT; derive user_id from token, ignore body.userId
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    if (!token) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const { data: userResult, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userResult?.user) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const userId = userResult.user.id;
+
+    const { amount, currency = 'XOF', description, customer, projectId, serviceRequestId, callbackUrl } = await req.json();
 
     // Validate required fields
     if (!amount || amount <= 0) {

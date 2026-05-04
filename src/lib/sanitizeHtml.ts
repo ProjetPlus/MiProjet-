@@ -100,37 +100,24 @@ export function normalizeArticleHtml(value: string | null | undefined) {
   return wrapTables(sanitizeArticleHtml(source));
 }
 
+import DOMPurify from "dompurify";
+
 export function sanitizeArticleHtml(value: string | null | undefined) {
   const raw = value || "";
-  if (typeof DOMParser === "undefined") {
-    return raw.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "").replace(/\son\w+="[^"]*"/gi, "");
+  if (typeof window === "undefined" || typeof DOMParser === "undefined") {
+    // SSR/edge fallback — strip dangerous tags/attrs conservatively
+    return raw
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+      .replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, "")
+      .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
+      .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
+      .replace(/javascript:/gi, "");
   }
-
-  const doc = new DOMParser().parseFromString(`<div>${raw}</div>`, "text/html");
-  const clean = (node: Node) => {
-    Array.from(node.childNodes).forEach((child) => {
-      if (child.nodeType !== Node.ELEMENT_NODE) return;
-      const el = child as HTMLElement;
-      const tag = el.tagName.toLowerCase();
-      if (!ALLOWED_TAGS.has(tag)) {
-        el.replaceWith(...Array.from(el.childNodes));
-        return;
-      }
-      Array.from(el.attributes).forEach((attr) => {
-        const name = attr.name.toLowerCase();
-        const allowed = (ALLOWED_ATTRS[tag] || []).includes(name);
-        if (!allowed || name.startsWith("on")) el.removeAttribute(attr.name);
-        if (["href", "src", "poster"].includes(name) && !isSafeUrl(attr.value)) el.removeAttribute(attr.name);
-      });
-      if (tag === "a") {
-        el.setAttribute("rel", "noopener noreferrer");
-        if (el.getAttribute("href")?.startsWith("http")) el.setAttribute("target", "_blank");
-      }
-      if (tag === "img") el.setAttribute("loading", "lazy");
-      clean(el);
-    });
-  };
-
-  clean(doc.body);
-  return doc.body.firstElementChild?.innerHTML || "";
+  return DOMPurify.sanitize(raw, {
+    USE_PROFILES: { html: true },
+    ALLOWED_TAGS: Array.from(ALLOWED_TAGS),
+    ADD_ATTR: ["target", "rel", "loading"],
+    FORBID_TAGS: ["script", "style", "iframe", "object", "embed"],
+    FORBID_ATTR: ["onerror", "onload", "onclick"],
+  });
 }

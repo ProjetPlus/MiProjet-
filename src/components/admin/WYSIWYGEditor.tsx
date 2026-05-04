@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeArticleHtml } from "@/lib/sanitizeHtml";
 import { 
   Bold, Italic, Underline, List, ListOrdered, 
   Heading1, Heading2, Heading3, Quote, Link2, 
@@ -353,7 +354,7 @@ export const WYSIWYGEditor = ({
         className="border border-t-0 rounded-b-lg p-4 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 prose prose-sm dark:prose-invert max-w-none overflow-auto"
         style={{ minHeight }}
         onInput={handleInput}
-        dangerouslySetInnerHTML={{ __html: value }}
+        dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(value) }}
         data-placeholder={placeholder}
       />
       

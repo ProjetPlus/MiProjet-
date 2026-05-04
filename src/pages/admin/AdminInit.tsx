@@ -19,11 +19,11 @@ const AdminInit = () => {
   const [step, setStep] = useState<"check" | "init" | "complete">("check");
 
   const [formData, setFormData] = useState({
-    email: "admin@miprojet.ci",
-    password: "@Miprojet2025",
-    firstName: "Inocent",
-    lastName: "KOFFI",
-    phone: "0759566087"
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    phone: ""
   });
 
   useEffect(() => {
