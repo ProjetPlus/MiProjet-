@@ -502,3 +502,15 @@ html {
     margin-right: -0.25rem;
   }
 }
+
+/* Hide empty headings/paragraphs that produce stray accent bars */
+.article-body :is(h1, h2, h3, h4, h5, h6):empty,
+.article-body :is(h1, h2, h3, h4, h5, h6) > br:only-child,
+.article-body p:empty,
+.article-body p > br:only-child {
+  display: none !important;
+}
+.article-body :is(h1, h2, h3, h4, h5, h6):not(:has(*)):where(:empty),
+.article-body :is(h1, h2, h3, h4, h5, h6):has(> br:only-child) {
+  display: none !important;
+}
