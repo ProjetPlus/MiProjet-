@@ -97,6 +97,24 @@ async function handleSuccessfulPayment(supabaseAdmin: any, data: any) {
     return;
   }
 
+  // Verify amount matches plan price before activating subscription
+  const metadataPre = payment.metadata as Record<string, unknown> | null;
+  if (metadataPre?.subscription_id && metadataPre?.plan_id) {
+    const { data: plan } = await supabaseAdmin
+      .from('subscription_plans')
+      .select('price')
+      .eq('id', metadataPre.plan_id as string)
+      .single();
+    if (plan && Number(payment.amount) < Number(plan.price)) {
+      console.error(`Amount mismatch: paid ${payment.amount} < plan price ${plan.price}. Refusing to activate subscription.`);
+      await supabaseAdmin.from('payments').update({
+        status: 'completed',
+        metadata: { ...(metadataPre || {}), subscription_activation_refused: 'amount_below_plan_price' }
+      }).eq('id', payment.id);
+      return;
+    }
+  }
+
   // Update payment to completed
   await supabaseAdmin.from('payments').update({
     status: 'completed',
