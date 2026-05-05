@@ -184,36 +184,47 @@ Deno.serve(async (req) => {
     let pageUrl = SITE_URL;
 
     if (type === "news") {
-      const { data } = await supabase.from("news").select("title, excerpt, content, image_url, short_slug").eq("id", id).single();
+      const { data } = await supabase.from("news").select("title, excerpt, content, image_url, short_slug").eq("id", id).eq("status", "published").maybeSingle();
       if (data) {
         title = data.title;
         pageUrl = buildShortPublicUrl(type, data.short_slug, id);
         description = buildSocialDescription(data.excerpt || data.content || "", type, pageUrl);
         image = buildCoverProxy(type, id, toAbsoluteUrl(data.image_url || DEFAULT_IMAGE, SITE_URL) || DEFAULT_IMAGE);
+      } else {
+        return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } });
       }
     } else if (type === "opportunity") {
-      const { data } = await supabase.from("opportunities").select("title, description, content, image_url, short_slug").eq("id", id).single();
+      const { data } = await supabase.from("opportunities").select("title, description, content, image_url, short_slug, is_active").eq("id", id).eq("status", "published").maybeSingle();
+      if (data && data.is_active === false) {
+        return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } });
+      }
       if (data) {
         title = data.title;
         pageUrl = buildShortPublicUrl(type, data.short_slug, id);
         description = buildSocialDescription(data.description || data.content || "", type, pageUrl);
         image = buildCoverProxy(type, id, toAbsoluteUrl(data.image_url || DEFAULT_IMAGE, SITE_URL) || DEFAULT_IMAGE);
+      } else {
+        return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } });
       }
     } else if (type === "project") {
-      const { data } = await supabase.from("projects").select("title, description, image_url, short_slug").eq("id", id).single();
+      const { data } = await supabase.from("projects").select("title, description, image_url, short_slug").eq("id", id).eq("status", "published").maybeSingle();
       if (data) {
         title = data.title;
         pageUrl = buildShortPublicUrl(type, data.short_slug, id);
         description = buildSocialDescription(data.description || "", type, pageUrl);
         image = buildCoverProxy(type, id, toAbsoluteUrl(data.image_url || DEFAULT_IMAGE, SITE_URL) || DEFAULT_IMAGE);
+      } else {
+        return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } });
       }
     } else if (type === "document" || type === "ebook") {
-      const { data } = await supabase.from("platform_documents").select("title, description, cover_url, short_slug").eq("id", id).single();
+      const { data } = await supabase.from("platform_documents").select("title, description, cover_url, short_slug").eq("id", id).eq("is_active", true).maybeSingle();
       if (data) {
         title = data.title;
         pageUrl = buildShortPublicUrl(type, data.short_slug, id);
         description = buildSocialDescription(data.description || "", type, pageUrl);
         image = buildCoverProxy(type, id, toAbsoluteUrl(data.cover_url || DEFAULT_IMAGE, SITE_URL) || DEFAULT_IMAGE);
+      } else {
+        return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } });
       }
     }
 

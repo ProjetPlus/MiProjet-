@@ -61,13 +61,21 @@ Deno.serve(async (req) => {
     // Look up the document by id (server-side; never trust client URL)
     const { data: doc, error: docErr } = await supabase
       .from('platform_documents')
-      .select('id, title, file_url')
+      .select('id, title, file_url, is_active, access_level, requires_login')
       .eq('id', documentId)
+      .eq('is_active', true)
       .maybeSingle();
 
     if (docErr || !doc?.file_url) {
       return new Response(JSON.stringify({ success: false, error: 'Document not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Refuse to issue signed URLs for premium or login-restricted documents through this public endpoint
+    if ((doc as any).access_level === 'premium' || (doc as any).requires_login === true) {
+      return new Response(JSON.stringify({ success: false, error: 'Document not available via this channel' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -140,7 +148,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, emailSent, downloadUrl }), {
+    // Do NOT return downloadUrl to the caller — it is only delivered via email
+    return new Response(JSON.stringify({ success: true, emailSent }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

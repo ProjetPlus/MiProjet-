@@ -7,8 +7,6 @@ const corsHeaders = {
 };
 
 const WAVE_API_BASE = 'https://api.wave.com';
-const TEST_MODE_MAX_PAYMENTS = 2;
-const TEST_MODE_AMOUNT = 100;
 
 async function callWaveAPI(endpoint: string, payload: Record<string, unknown>, apiKey: string, attempt = 1): Promise<{ data: any; status: number }> {
   const controller = new AbortController();
@@ -83,21 +81,26 @@ serve(async (req) => {
       });
     }
 
-    // Test mode: check how many successful payments this user has
+    // Server-side amount validation: if a plan_id is provided, the charged amount
+    // must be at least the plan's price. This prevents client-side price tampering.
     let finalAmount = amount;
-    const { data: successfulPayments } = await supabaseClient
-      .from('payments')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('status', 'completed')
-      .eq('payment_method', 'wave');
-
-    const successCount = successfulPayments?.length || 0;
-    const isTestMode = successCount < TEST_MODE_MAX_PAYMENTS;
-
-    if (isTestMode) {
-      finalAmount = TEST_MODE_AMOUNT;
-      console.log(`TEST MODE: User ${user.id} has ${successCount} successful payments. Charging ${TEST_MODE_AMOUNT} FCFA instead of ${amount} FCFA`);
+    if (plan_id) {
+      const { data: plan, error: planErr } = await supabaseClient
+        .from('subscription_plans')
+        .select('price')
+        .eq('id', plan_id)
+        .single();
+      if (planErr || !plan) {
+        return new Response(JSON.stringify({ error: 'Plan d\'abonnement introuvable.' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      if (Number(amount) < Number(plan.price)) {
+        return new Response(JSON.stringify({ error: `Montant insuffisant pour ce plan (minimum ${plan.price} FCFA).` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      finalAmount = Number(plan.price);
     }
 
     const transactionId = `MIP-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -114,8 +117,6 @@ serve(async (req) => {
         metadata: { 
           subscription_id, plan_id, description, 
           original_amount: amount,
-          test_mode: isTestMode,
-          test_payment_number: successCount + 1
         }
       })
       .select()
@@ -168,7 +169,6 @@ serve(async (req) => {
       wave_launch_url: launchUrl,
       payment_id: payment.id,
       transaction_id: transactionId,
-      test_mode: isTestMode,
       charged_amount: finalAmount,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
