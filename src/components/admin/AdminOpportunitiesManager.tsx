@@ -10,13 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Edit, Trash2, Check, X, Search, Briefcase, ExternalLink, BarChart3, Loader2, Send } from "lucide-react";
+import { Plus, Edit, Trash2, Check, X, Search, Briefcase, ExternalLink, BarChart3, Loader2, Send, RefreshCw, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { UniversalAIEditor, type EditorField } from "./UniversalAIEditor";
 import { WYSIWYGEditor } from "./WYSIWYGEditor";
+import { purgeOgCache, openOgDebug } from "@/lib/ogPurge";
 
 interface Opportunity {
   id: string;
@@ -40,6 +41,7 @@ interface Opportunity {
   status: string;
   views_count: number;
   created_at: string;
+  short_slug?: string | null;
 }
 
 const opportunityTypes = [
@@ -191,7 +193,14 @@ export const AdminOpportunitiesManager = () => {
     if (editingItem) {
       const { error } = await supabase.from('opportunities').update(opportunityData).eq('id', editingItem.id);
       if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
-      else { toast({ title: "Succès", description: publishDirectly ? "Publiée !" : "Modifiée" }); fetchOpportunities(); resetForm(); }
+      else {
+        toast({ title: "Succès", description: publishDirectly ? "Publiée !" : "Modifiée" });
+        const slug = (editingItem as any).short_slug;
+        if ((editingItem.status === 'published' || publishDirectly) && slug) {
+          purgeOgCache("opportunites", slug);
+        }
+        fetchOpportunities(); resetForm();
+      }
     } else {
       const { error } = await supabase.from('opportunities').insert([opportunityData]);
       if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); }
@@ -203,7 +212,25 @@ export const AdminOpportunitiesManager = () => {
     const updates: any = { status };
     if (status === 'published') updates.published_at = new Date().toISOString();
     const { error } = await supabase.from('opportunities').update(updates).eq('id', id);
-    if (!error) { toast({ title: "Succès" }); fetchOpportunities(); }
+    if (!error) {
+      toast({ title: "Succès" });
+      if (status === 'published') {
+        const item = opportunities.find(o => o.id === id);
+        if (item?.short_slug) purgeOgCache("opportunites", item.short_slug);
+      }
+      fetchOpportunities();
+    }
+  };
+
+  const refreshSocialPreview = async (slug: string | null | undefined) => {
+    if (!slug) {
+      toast({ title: "Slug manquant", description: "Publiez d'abord l'opportunité", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Rafraîchissement...", description: "Purge du cache social en cours" });
+    const res = await purgeOgCache("opportunites", slug);
+    if (res.ok) toast({ title: "Aperçu social rafraîchi" });
+    else toast({ title: "Échec purge", description: res.error, variant: "destructive" });
   };
 
   const deleteOpportunity = async (id: string) => {
