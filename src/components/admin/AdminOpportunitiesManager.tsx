@@ -624,6 +624,16 @@ export const AdminOpportunitiesManager = () => {
                           {item.status === 'published' && (
                             <Button size="sm" variant="outline" onClick={() => updateStatus(item.id, 'archived')} title="Archiver"><X className="h-4 w-4" /></Button>
                           )}
+                          {item.status === 'published' && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => refreshSocialPreview(item.short_slug)} title="Rafraîchir aperçu social">
+                                <RefreshCw className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => openOgDebug("opportunites", item.short_slug)} title="Vérifier OG (debug)">
+                                <Link2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                           <Button size="sm" variant="outline" onClick={() => openEditDialog(item)} title="Modifier"><Edit className="h-4 w-4" /></Button>
                           <Button size="sm" variant="destructive" onClick={() => deleteOpportunity(item.id)} title="Supprimer"><Trash2 className="h-4 w-4" /></Button>
                         </div>
