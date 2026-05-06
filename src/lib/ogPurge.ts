@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const SITE_URL = "https://ivoireprojet.com";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 export type OgPrefix = "actualites" | "opportunites" | "articles";
 
@@ -35,6 +36,6 @@ export function openOgDebug(prefix: OgPrefix, slug: string | null | undefined) {
     alert("Slug indisponible : publiez d'abord la ressource.");
     return;
   }
-  const url = `${SITE_URL}/api/og-debug?prefix=${prefix}&slug=${encodeURIComponent(slug)}`;
+  const url = `${SUPABASE_URL}/functions/v1/og-debug?prefix=${prefix}&slug=${encodeURIComponent(slug)}`;
   window.open(url, "_blank", "noopener,noreferrer");
 }
