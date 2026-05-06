@@ -7,13 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Eye, Archive, Check, Search, Newspaper } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Archive, Check, Search, Newspaper, RefreshCw, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { UniversalAIEditor, type EditorField } from "./UniversalAIEditor";
+import { purgeOgCache, openOgDebug } from "@/lib/ogPurge";
 
 interface NewsItem {
   id: string;
@@ -28,6 +29,7 @@ interface NewsItem {
   published_at: string | null;
   views_count: number;
   created_at: string;
+  short_slug?: string | null;
 }
 
 const categories = [
@@ -75,6 +77,17 @@ export const AdminNewsManager = () => {
     setLoading(false);
   };
 
+  const refreshSocialPreview = async (slug: string | null | undefined) => {
+    if (!slug) {
+      toast({ title: "Slug manquant", description: "Publiez d'abord l'actualité", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Rafraîchissement...", description: "Purge du cache social en cours" });
+    const res = await purgeOgCache("actualites", slug);
+    if (res.ok) toast({ title: "Aperçu social rafraîchi" });
+    else toast({ title: "Échec purge", description: res.error, variant: "destructive" });
+  };
+
   const handleFieldChange = (name: string, value: any) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -97,7 +110,13 @@ export const AdminNewsManager = () => {
     if (editingNews) {
       const { error } = await supabase.from('news').update(newsData).eq('id', editingNews.id);
       if (error) { toast({ title: "Erreur", description: "Impossible de modifier", variant: "destructive" }); }
-      else { toast({ title: "Succès", description: "Actualité modifiée" }); fetchNews(); resetForm(); }
+      else {
+        toast({ title: "Succès", description: "Actualité modifiée" });
+        if (editingNews.status === 'published' && editingNews.short_slug) {
+          purgeOgCache("actualites", editingNews.short_slug);
+        }
+        fetchNews(); resetForm();
+      }
     } else {
       const { error } = await supabase.from('news').insert([newsData]);
       if (error) { toast({ title: "Erreur", description: "Impossible de créer", variant: "destructive" }); }
@@ -110,7 +129,14 @@ export const AdminNewsManager = () => {
     if (status === 'published') updates.published_at = new Date().toISOString();
     if (status === 'archived') updates.archived_at = new Date().toISOString();
     const { error } = await supabase.from('news').update(updates).eq('id', id);
-    if (!error) { toast({ title: "Succès" }); fetchNews(); }
+    if (!error) {
+      toast({ title: "Succès" });
+      if (status === 'published') {
+        const item = news.find(n => n.id === id);
+        if (item?.short_slug) purgeOgCache("actualites", item.short_slug);
+      }
+      fetchNews();
+    }
   };
 
   const deleteNews = async (id: string) => {
@@ -260,6 +286,16 @@ export const AdminNewsManager = () => {
                           <Button variant="ghost" size="icon" onClick={() => updateStatus(item.id, 'archived')} title="Archiver">
                             <Archive className="h-4 w-4" />
                           </Button>
+                        )}
+                        {item.status === 'published' && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => refreshSocialPreview(item.short_slug)} title="Rafraîchir aperçu social">
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => openOgDebug("actualites", item.short_slug)} title="Vérifier OG (debug)">
+                              <Link2 className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)}><Edit className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => deleteNews(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
