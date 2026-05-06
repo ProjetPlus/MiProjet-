@@ -287,6 +287,16 @@ export const AdminNewsManager = () => {
                             <Archive className="h-4 w-4" />
                           </Button>
                         )}
+                        {item.status === 'published' && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => refreshSocialPreview(item.short_slug)} title="Rafraîchir aperçu social">
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => openOgDebug("actualites", item.short_slug)} title="Vérifier OG (debug)">
+                              <Link2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)}><Edit className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => deleteNews(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
